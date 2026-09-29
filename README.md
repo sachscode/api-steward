@@ -2,9 +2,22 @@
 
 Private API modernization with verified behavior preservation, powered by distributed MoE inference.
 
-API Steward is a planned, privately deployed agent that identifies the impact of an API or SDK change, proposes a bounded migration, generates a patch, and presents independent verification evidence for human review.
+API Steward is a private API maintenance project that will identify the impact of an API or SDK change, propose a bounded migration, generate a patch, and present independent verification evidence for human review.
 
-**Status:** Planning. The first use case is agreed; baseline qualification, model selection, implementation, and measured results are pending.
+**Status:** Part 0 has a runnable Track B application skeleton with scripted inference and a tested local serving path. Real Stripe baseline qualification, model selection, patch generation, GPU deployment, and inference benchmarks remain pending.
+
+## Run Part 0 locally
+
+Requires Python 3.11+, with no extra packages:
+
+```bash
+python3 -m api_steward demo --output artifacts/part0/demo.json
+python3 -m unittest discover -s tests -v
+```
+
+The demo runs interactive and batch assessments through a loopback HTTP gateway: guardrails → admission → placement → queue → scripted worker. Each assessment inspects a synthetic integration, reads a curated migration note, checks the API mapping, and returns an answer. Every step records serving-path evidence and growing context size.
+
+This verifies application plumbing, not model quality, billing correctness, or GPU performance. Start with the [Part 0 application and learning checkpoint](docs/PART0_APPLICATION.md).
 
 ## First use case
 
@@ -27,6 +40,7 @@ Model choice, precision, hardware, topology, and performance targets remain open
 
 | Document | Purpose |
 | --- | --- |
+| [Part 0 application](docs/PART0_APPLICATION.md) | Track B contract, runnable demo, serve-path evidence, limits, and first learning checkpoint. |
 | [Project plan](PROJECT_PLAN.md) | Scope, migration contract, acceptance criteria, and build sequence. |
 | [Observability plan](OBSERVABILITY_PLAN.md) | Metrics, concurrency, multi-tenancy, capacity planning, KEDA, quality evaluation, dashboards, and alerts. |
 | [Benchmark plan](BENCHMARK_PLAN.md) | Reproducible workloads, quality controls, distributed transport evidence, and comparative experiments. |
@@ -42,6 +56,6 @@ These files were imported from the existing project planning folder. Keep subseq
 
 ## Next checkpoint
 
-Qualify and freeze the Stripe invoice-preview baseline and acceptance contract. Then work through checkpointed paper calculations for MoE weight memory, KV-cache capacity, concurrency, prefill/decode demand, transfer bandwidth, and cost before selecting the serving configuration.
+Run and explain the Part 0 local demo. Then qualify and freeze the real Stripe invoice-preview baseline and acceptance contract. Work through checkpointed paper calculations for MoE weight memory, KV-cache capacity, concurrency, prefill/decode demand, transfer bandwidth, and cost before selecting the serving configuration.
 
-There is no runnable agent or deployed inference service in this repository yet.
+The local agent uses scripted completions by default. An OpenAI-compatible worker adapter is available for later connection to the selected private model; no real-model or GPU run is claimed yet.

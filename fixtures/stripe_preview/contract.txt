@@ -1,0 +1,8 @@
+Teaching contract: the billing screen displays an estimated invoice before a
+subscription plan change. Preserve customer, subscription, item, price and
+quantity identity, plus the meaning and types of currency and amount_due.
+The preview route must not create an invoice, charge a customer, or modify a
+subscription. Invalid identifiers and provider errors must remain errors.
+Actual totals, discounts, proration, response compatibility and absence of
+side effects require independent tests and controlled Stripe sandbox checks.
+None of those checks have run in this fixture.

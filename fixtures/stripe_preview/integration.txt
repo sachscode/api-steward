@@ -1,0 +1,15 @@
+# Synthetic teaching fixture; never imported or executed.
+# Representative of the planned Stripe migration, not a qualified baseline.
+stripe.api_version = "2025-02-24.acacia"
+
+def invoice_preview(customer_id, subscription_id, item_id, new_price, quantity):
+    preview = stripe.Invoice.upcoming(
+        customer=customer_id,
+        subscription=subscription_id,
+        subscription_items=[{
+            "id": item_id,
+            "price": new_price,
+            "quantity": quantity,
+        }],
+    )
+    return {"currency": preview.currency, "amount_due": preview.amount_due}

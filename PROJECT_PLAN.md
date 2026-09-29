@@ -4,6 +4,8 @@ Decision recorded: 2026-09-28
 
 Status: First use case and project direction agreed. Baseline execution, model selection, cloud topology, and implementation are pending.
 
+Part 0 checkpoint: a [Track B application skeleton](docs/PART0_APPLICATION.md) now exercises the local serving path with scripted completions and read-only fixture tools. Product implementation, real-model validation, and the baseline qualification gate below remain pending.
+
 ## Product decision
 
 Build a privately hosted agent that identifies the effect of a documented API change on an application, explains the affected behavior, prepares a patch, and presents independent verification evidence for human review.

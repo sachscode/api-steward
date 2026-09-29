@@ -17,3 +17,6 @@ __pycache__/
 # Local OS metadata
 .DS_Store
 Thumbs.db
+
+# Local Part 0 run records (may contain model answers)
+/artifacts/part0/
