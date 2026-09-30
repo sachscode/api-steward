@@ -20,3 +20,8 @@ Thumbs.db
 
 # Local Part 0 run records (may contain model answers)
 /artifacts/part0/
+
+# Local run output: gateway logs and rehearsal traces (commit evidence deliberately)
+metrics/*.log
+metrics/rehearsal/
+metrics/traces/

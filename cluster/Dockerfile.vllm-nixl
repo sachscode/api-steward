@@ -1,0 +1,18 @@
+# Engine image: pinned vLLM plus NIXL (for NixlConnector KV transfer) and RDMA tools.
+# vLLM v0.30.0 lists nixl==1.4.1 in requirements/kv_connectors.txt; the official
+# image only installs it when built with INSTALL_KV_CONNECTORS=true, so add it here.
+ARG VLLM_VERSION=v0.30.0
+FROM vllm/vllm-openai:${VLLM_VERSION}
+
+ARG NIXL_VERSION=1.4.1
+RUN python3 -c "import nixl" 2>/dev/null \
+      || (command -v uv >/dev/null && uv pip install --system "nixl==${NIXL_VERSION}") \
+      || pip install --no-cache-dir "nixl==${NIXL_VERSION}"
+
+# ibv_devinfo / rdma link / ib_write_bw from inside a pod, to prove the RoCE device is visible.
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      ibverbs-utils rdma-core perftest iproute2 \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -c "import vllm, nixl; print('vllm', vllm.__version__, 'nixl ok')"

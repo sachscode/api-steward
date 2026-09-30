@@ -1,0 +1,497 @@
+
+===== host =====
+$ hostname
+192-9-146-172
+$ date -u
+Tue Sep 29 16:18:22 UTC 2026
+$ uname -r
+6.8.0-1046-nvidia
+$ lsb_release -ds
+Ubuntu 22.04.5 LTS
+$ nproc
+124
+$ free -g
+               total        used        free      shared  buff/cache   available
+Mem:            1771           2        1767           0           2        1762
+Swap:              0           0           0
+
+===== gpu =====
+$ nvidia-smi
+Tue Sep 29 16:18:22 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.105.08             Driver Version: 580.105.08     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-40GB          On  |   00000000:06:00.0 Off |                    0 |
+| N/A   27C    P0             55W /  400W |       0MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   1  NVIDIA A100-SXM4-40GB          On  |   00000000:07:00.0 Off |                    0 |
+| N/A   25C    P0             51W /  400W |       0MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   2  NVIDIA A100-SXM4-40GB          On  |   00000000:08:00.0 Off |                    0 |
+| N/A   26C    P0             52W /  400W |       0MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   3  NVIDIA A100-SXM4-40GB          On  |   00000000:09:00.0 Off |                    0 |
+| N/A   26C    P0             52W /  400W |       0MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   4  NVIDIA A100-SXM4-40GB          On  |   00000000:0A:00.0 Off |                    0 |
+| N/A   25C    P0             52W /  400W |       0MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   5  NVIDIA A100-SXM4-40GB          On  |   00000000:0B:00.0 Off |                    0 |
+| N/A   25C    P0             52W /  400W |       0MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   6  NVIDIA A100-SXM4-40GB          On  |   00000000:0C:00.0 Off |                    0 |
+| N/A   25C    P0             52W /  400W |       0MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   7  NVIDIA A100-SXM4-40GB          On  |   00000000:0D:00.0 Off |                    0 |
+| N/A   26C    P0             51W /  400W |       0MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+$ nvidia-smi --query-gpu=index,name,memory.total,pci.bus_id --format=csv
+index, name, memory.total [MiB], pci.bus_id
+0, NVIDIA A100-SXM4-40GB, 40960 MiB, 00000000:06:00.0
+1, NVIDIA A100-SXM4-40GB, 40960 MiB, 00000000:07:00.0
+2, NVIDIA A100-SXM4-40GB, 40960 MiB, 00000000:08:00.0
+3, NVIDIA A100-SXM4-40GB, 40960 MiB, 00000000:09:00.0
+4, NVIDIA A100-SXM4-40GB, 40960 MiB, 00000000:0A:00.0
+5, NVIDIA A100-SXM4-40GB, 40960 MiB, 00000000:0B:00.0
+6, NVIDIA A100-SXM4-40GB, 40960 MiB, 00000000:0C:00.0
+7, NVIDIA A100-SXM4-40GB, 40960 MiB, 00000000:0D:00.0
+$ nvidia-smi topo -m
+	[4mGPU0	GPU1	GPU2	GPU3	GPU4	GPU5	GPU6	GPU7	NIC0	CPU Affinity	NUMA Affinity	GPU NUMA ID[0m
+GPU0	 X 	NV12	NV12	NV12	NV12	NV12	NV12	NV12	PHB	0-123	0-1		N/A
+GPU1	NV12	 X 	NV12	NV12	NV12	NV12	NV12	NV12	PHB	0-123	0-1		N/A
+GPU2	NV12	NV12	 X 	NV12	NV12	NV12	NV12	NV12	PHB	0-123	0-1		N/A
+GPU3	NV12	NV12	NV12	 X 	NV12	NV12	NV12	NV12	PHB	0-123	0-1		N/A
+GPU4	NV12	NV12	NV12	NV12	 X 	NV12	NV12	NV12	PHB	0-123	0-1		N/A
+GPU5	NV12	NV12	NV12	NV12	NV12	 X 	NV12	NV12	PHB	0-123	0-1		N/A
+GPU6	NV12	NV12	NV12	NV12	NV12	NV12	 X 	NV12	PHB	0-123	0-1		N/A
+GPU7	NV12	NV12	NV12	NV12	NV12	NV12	NV12	 X 	PHB	0-123	0-1		N/A
+NIC0	PHB	PHB	PHB	PHB	PHB	PHB	PHB	PHB	 X 				
+
+Legend:
+
+  X    = Self
+  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)
+  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node
+  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)
+  PIX  = Connection traversing at most a single PCIe bridge
+  NV#  = Connection traversing a bonded set of # NVLinks
+
+NIC Legend:
+
+  NIC0: mlx5_0
+
+$ nvidia-smi nvlink --status -i 0
+GPU 0: NVIDIA A100-SXM4-40GB (UUID: GPU-0f43bfda-4539-e709-7153-ec48cb9a0043)
+	 Link 0: 25 GB/s
+	 Link 1: 25 GB/s
+	 Link 2: 25 GB/s
+	 Link 3: 25 GB/s
+	 Link 4: 25 GB/s
+	 Link 5: 25 GB/s
+	 Link 6: 25 GB/s
+	 Link 7: 25 GB/s
+	 Link 8: 25 GB/s
+	 Link 9: 25 GB/s
+	 Link 10: 25 GB/s
+	 Link 11: 25 GB/s
+$ nvcc --version
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Fri_Feb_21_20:23:50_PST_2025
+Cuda compilation tools, release 12.8, V12.8.93
+Build cuda_12.8.r12.8/compiler.35583870_0
+
+===== nic hardware =====
+05:00.0 Ethernet controller: Mellanox Technologies MT28800 Family [ConnectX-5 Ex Virtual Function]
+$ ip -br addr
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+eno1             UP             10.19.50.235/20 fe80::17ff:fe00:25af/64 
+docker0          DOWN           172.17.0.1/16 
+$ ip route show default
+default via 10.19.48.1 dev eno1 proto static 
+--- eno1
+driver: mlx5_core
+version: 24.10-3.2.5
+firmware-version: 16.29.1414 (ORC0000000003)
+expansion-rom-version: 
+bus-info: 0000:05:00.0
+	Speed: 50000Mb/s
+	Link detected: yes
+rdma_cm               147456  1 rdma_ucm
+iw_cm                  61440  1 rdma_cm
+ib_cm                 147456  2 rdma_cm,ib_ipoib
+mlx5_ib               548864  0
+macsec                 77824  1 mlx5_ib
+ib_uverbs             200704  3 nvidia_peermem,rdma_ucm,mlx5_ib
+ib_core               520192  8 rdma_cm,ib_ipoib,iw_cm,ib_umad,rdma_ucm,ib_uverbs,mlx5_ib,ib_cm
+mlx5_core            2813952  1 mlx5_ib
+mlxfw                  36864  1 mlx5_core
+psample                16384  1 mlx5_core
+mlxdevm               184320  1 mlx5_core
+tls                   151552  1 mlx5_core
+mlx_compat             20480  12 rdma_cm,ib_ipoib,mlxdevm,mlxfw,iw_cm,ib_umad,ib_core,rdma_ucm,ib_uverbs,mlx5_ib,ib_cm,mlx5_core
+pci_hyperv_intf        12288  1 mlx5_core
+
+===== rdma userspace (installs rdma-core/ibverbs-utils/perftest if missing) =====
+$ ibv_devices
+    device          	   node GUID
+    ------          	----------------
+    mlx5_0          	020017fffe0025af
+hca_id:	mlx5_0
+	transport:			InfiniBand (0)
+		port:	1
+			state:			PORT_ACTIVE (4)
+			active_mtu:		1024 (3)
+			link_layer:		Ethernet
+$ rdma link show
+link mlx5_0/1 state ACTIVE physical_state LINK_UP netdev eno1 
+rdma_cm
+umad0
+uverbs0
+
+===== container runtime =====
+$ docker --version
+Docker version 29.2.1, build a5c7197
+$ nvidia-ctk --version
+NVIDIA Container Toolkit CLI version 1.18.1
+(docker info unavailable)
+(k3s not installed)
+
+===== storage =====
+$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           178G  1.9M  178G   1% /run
+/dev/vda1       5.7T   25G  5.7T   1% /
+tmpfs           886G  168K  886G   1% /dev/shm
+tmpfs           5.0M     0  5.0M   0% /run/lock
+/dev/vda15      105M  6.1M   99M   6% /boot/efi
+tmpfs           178G   12K  178G   1% /run/user/1000
+(no network/persistent filesystem mounted)
+
+===== nccl intra-host all-reduce (all GPUs on this host) =====
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvcc warning : Support for offline compilation for architectures prior to '<compute/sm/lto>_75' will be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_60)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_60)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_60)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_60)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_60)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_60)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_60)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_60)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_60)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_60)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_60)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_61)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_61)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_61)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_61)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_61)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_61)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_61)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_61)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_61)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_61)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_61)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_70)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_70)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_70)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_70)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_70)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_70)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_70)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_70)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_70)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_70)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_70)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_80)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_80)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_80)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_80)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_80)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_80)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_80)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_80)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_80)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_80)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_80)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_90)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_90)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_90)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_90)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_90)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_90)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_90)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_90)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_90)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_90)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_90)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_100)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_100)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_100)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_100)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_100)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_100)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_100)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_100)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_100)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_100)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_100)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_120)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_120)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_120)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_120)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_120)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_120)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_120)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_120)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_120)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_120)
+nvlink warning : Skipping incompatible '/usr/lib/x86_64-linux-gnu/librt.a' when searching for -lrt (target: sm_120)
+# nccl-tests version 2.20.0 (b4d5bee) nccl-headers=22602 nccl-library=22602
+# Collective test starting: all_reduce_perf
+# nThread 1 nGpus 8 minBytes 8 maxBytes 1073741824 step: 2(factor) warmup iters: 5 iters: 20 agg iters: 1 validation: 1 graph: 0 unalign: 0
+#
+# Using devices
+#  Rank  0 Group  0 Pid   7084 on 192-9-146-172 device  0 [0000:06:00] NVIDIA A100-SXM4-40GB
+#  Rank  1 Group  0 Pid   7084 on 192-9-146-172 device  1 [0000:07:00] NVIDIA A100-SXM4-40GB
+#  Rank  2 Group  0 Pid   7084 on 192-9-146-172 device  2 [0000:08:00] NVIDIA A100-SXM4-40GB
+#  Rank  3 Group  0 Pid   7084 on 192-9-146-172 device  3 [0000:09:00] NVIDIA A100-SXM4-40GB
+#  Rank  4 Group  0 Pid   7084 on 192-9-146-172 device  4 [0000:0a:00] NVIDIA A100-SXM4-40GB
+#  Rank  5 Group  0 Pid   7084 on 192-9-146-172 device  5 [0000:0b:00] NVIDIA A100-SXM4-40GB
+#  Rank  6 Group  0 Pid   7084 on 192-9-146-172 device  6 [0000:0c:00] NVIDIA A100-SXM4-40GB
+#  Rank  7 Group  0 Pid   7084 on 192-9-146-172 device  7 [0000:0d:00] NVIDIA A100-SXM4-40GB
+192-9-146-172:7084:7121 [0] NCCL INFO NET/Plugin: Loaded net plugin NCCL RDMA Plugin v10 (v10)
+192-9-146-172:7084:7121 [0] NCCL INFO NET/Plugin: Loaded collnet plugin NCCL RDMA Plugin v10 (v10)
+192-9-146-172:7084:7121 [0] NCCL INFO P2P plugin v10 IBext_v10
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IB : Made virtual device [0] name=mlx5_0 speed=50000 ndevs=1
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IB : Using [0]mlx5_0:1/RoCE [RO]; OOB eno1:10.19.50.235<0>
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7125 [4] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7125 [4] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7123 [2] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7123 [2] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7126 [5] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7126 [5] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7124 [3] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7124 [3] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7124 [3] NCCL INFO Using network IBext_v10
+192-9-146-172:7084:7121 [0] NCCL INFO Using network IBext_v10
+192-9-146-172:7084:7122 [1] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7122 [1] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7122 [1] NCCL INFO Using network IBext_v10
+192-9-146-172:7084:7128 [7] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7128 [7] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7128 [7] NCCL INFO Using network IBext_v10
+192-9-146-172:7084:7125 [4] NCCL INFO Using network IBext_v10
+192-9-146-172:7084:7123 [2] NCCL INFO Using network IBext_v10
+192-9-146-172:7084:7127 [6] NCCL INFO Using network IBext_v10
+192-9-146-172:7084:7126 [5] NCCL INFO Using network IBext_v10
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IB : Made virtual device [1] name=mlx5_0 speed=50000 ndevs=1
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7127 [6] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 1 'mlx5_0'
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7121 [0] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 1 'mlx5_0'
+192-9-146-172:7084:7124 [3] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7124 [3] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7124 [3] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7124 [3] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7124 [3] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7124 [3] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7124 [3] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7124 [3] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7124 [3] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 1 'mlx5_0'
+192-9-146-172:7084:7122 [1] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7122 [1] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7122 [1] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7122 [1] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7122 [1] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7122 [1] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7122 [1] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7122 [1] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7122 [1] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 1 'mlx5_0'
+192-9-146-172:7084:7126 [5] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7126 [5] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7126 [5] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7126 [5] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7126 [5] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7126 [5] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7126 [5] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7126 [5] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7126 [5] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 1 'mlx5_0'
+192-9-146-172:7084:7128 [7] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7128 [7] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7128 [7] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7128 [7] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7128 [7] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7128 [7] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7128 [7] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7128 [7] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7128 [7] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 1 'mlx5_0'
+192-9-146-172:7084:7125 [4] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7125 [4] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7125 [4] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7125 [4] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7125 [4] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7125 [4] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7125 [4] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7125 [4] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7125 [4] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 1 'mlx5_0'
+192-9-146-172:7084:7123 [2] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7123 [2] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7123 [2] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7123 [2] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7123 [2] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7123 [2] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+192-9-146-172:7084:7123 [2] NCCL INFO NET/IB : GPU Direct RDMA (nvidia-peermem) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7123 [2] NCCL INFO NET/IB : GPU Direct RDMA (DMABUF) enabled for HCA 0 'mlx5_0
+192-9-146-172:7084:7123 [2] NCCL INFO NET/IBext_v10 : GPU Direct RDMA Enabled for HCA 1 'mlx5_0'
+192-9-146-172:7084:7124 [3] NCCL INFO NVLS multicast support is not available on dev 3
+192-9-146-172:7084:7122 [1] NCCL INFO NVLS multicast support is not available on dev 1
+192-9-146-172:7084:7123 [2] NCCL INFO NVLS multicast support is not available on dev 2
+192-9-146-172:7084:7128 [7] NCCL INFO NVLS multicast support is not available on dev 7
+192-9-146-172:7084:7127 [6] NCCL INFO NVLS multicast support is not available on dev 6
+192-9-146-172:7084:7121 [0] NCCL INFO NVLS multicast support is not available on dev 0
+192-9-146-172:7084:7125 [4] NCCL INFO NVLS multicast support is not available on dev 4
+192-9-146-172:7084:7126 [5] NCCL INFO NVLS multicast support is not available on dev 5
+192-9-146-172:7084:7125 [4] NCCL INFO comm 0x63a0f2347080 rank 4 nRanks 8 nNodes 1 localRanks 8 localRank 4 MNNVL 0
+192-9-146-172:7084:7123 [2] NCCL INFO comm 0x63a0f2242160 rank 2 nRanks 8 nNodes 1 localRanks 8 localRank 2 MNNVL 0
+192-9-146-172:7084:7121 [0] NCCL INFO comm 0x63a0f213d240 rank 0 nRanks 8 nNodes 1 localRanks 8 localRank 0 MNNVL 0
+192-9-146-172:7084:7128 [7] NCCL INFO comm 0x63a0f24ce5f0 rank 7 nRanks 8 nNodes 1 localRanks 8 localRank 7 MNNVL 0
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 00/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7126 [5] NCCL INFO comm 0x63a0f23c9810 rank 5 nRanks 8 nNodes 1 localRanks 8 localRank 5 MNNVL 0
+192-9-146-172:7084:7123 [2] NCCL INFO P2P Chunksize set to 524288
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 01/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 02/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 03/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7127 [6] NCCL INFO comm 0x63a0f244bfa0 rank 6 nRanks 8 nNodes 1 localRanks 8 localRank 6 MNNVL 0
+192-9-146-172:7084:7126 [5] NCCL INFO P2P Chunksize set to 524288
+192-9-146-172:7084:7128 [7] NCCL INFO P2P Chunksize set to 524288
+192-9-146-172:7084:7124 [3] NCCL INFO comm 0x63a0f22c48f0 rank 3 nRanks 8 nNodes 1 localRanks 8 localRank 3 MNNVL 0
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 04/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 05/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 06/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 07/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7127 [6] NCCL INFO P2P Chunksize set to 524288
+192-9-146-172:7084:7125 [4] NCCL INFO P2P Chunksize set to 524288
+192-9-146-172:7084:7122 [1] NCCL INFO comm 0x63a0f21bf9d0 rank 1 nRanks 8 nNodes 1 localRanks 8 localRank 1 MNNVL 0
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 08/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 09/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 10/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 11/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 12/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7122 [1] NCCL INFO P2P Chunksize set to 524288
+192-9-146-172:7084:7124 [3] NCCL INFO P2P Chunksize set to 524288
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 13/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 14/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 15/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 16/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 17/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 18/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 19/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 20/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 21/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 22/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO Channel 23/24 : 0 1 2 3 4 5 6 7
+192-9-146-172:7084:7121 [0] NCCL INFO P2P Chunksize set to 524288
+#
+#                                                              out-of-place                       in-place
+#       size         count      type   redop    root     time   algbw   busbw  #wrong     time   algbw   busbw  #wrong
+#        (B)    (elements)                               (us)  (GB/s)  (GB/s)             (us)  (GB/s)  (GB/s)        
+           8             2     float     sum      -1192-9-146-172:7084:7144 [7] NCCL INFO New proxy recv connection 0 from local rank 7, transport 0
+192-9-146-172:7084:7150 [6] NCCL INFO Channel 00/0 : 6[6] -> 7[7] via P2P/direct pointer/read
+192-9-146-172:7084:7150 [6] NCCL INFO Channel 01/0 : 6[6] -> 7[7] via P2P/direct pointer/read
+192-9-146-172:7084:7150 [6] NCCL INFO Channel 02/0 : 6[6] -> 7[7] via P2P/direct pointer/read
+192-9-146-172:7084:7150 [6] NCCL INFO Channel 03/0 : 6[6] -> 7[7] via P2P/direct pointer/read
+192-9-146-172:7084:7149 [7] NCCL INFO Channel 00/0 : 7[7] -> 0[0] via P2P/direct pointer/read
+192-9-146-172:7084:7150 [6] NCCL INFO Channel 04/0 : 6[6] -> 7[7] via P2P/direct pointer/read
+192-9-146-172:7084:7149 [7] NCCL INFO Channel 01/0 : 7[7] -> 0[0] via P2P/direct pointer/read
+192-9-146-172:7084:7149 [7] NCCL INFO Channel 02/0 : 7[7] -> 0[0] via P2P/direct pointer/read
+192-9-146-172:7084:7151 [5] NCCL INFO Channel 00/0 : 5[5] -> 6[6] via P2P/direct pointer/read
+192-9-146-172:7084:7150 [6] NCCL INFO Channel 05/0 : 6[6] -> 7[7] via P2P/direct pointer/read
+192-9-146-172:7084:7149 [7] NCCL INFO Channel 03/0 : 7[7] -> 0[0] via P2P/direct pointer/read
+192-9-146-172:7084:7151 [5] NCCL INFO Channel 01/0 : 5[5] -> 6[6] via P2P/direct pointer/read
+192-9-146-172:7084:7151 [5] NCCL INFO Channel 02/0 : 5[5] -> 6[6] via P2P/direct pointer/read
+192-9-146-172:7084:7149 [7] NCCL INFO Channel 04/0 : 7[7] -> 0[0] via P2P/direct pointer/read
+192-9-146-172:7084:7150 [6] NCCL INFO Channel 06/0 : 6[6] -> 7[7] via P2P/direct pointer/read
+192-9-146-172:7084:7152 [4] NCCL INFO Channel 00/0 : 4[4] -> 5[5] via P2P/direct pointer/read
+192-9-146-172:7084:7150 [6] NCCL INFO Channel 07/0 : 6[6] -> 7[7] via P2P/direct pointer/read
+192-9-146-172:7084:7153 [3] NCCL INFO Channel 00/0 : 3[3] -> 4[4] via P2P/direct pointer/read
+192-9-146-172:7084:7150 [6] NCCL INFO Channel 08/0 : 6[6] -> 7[7] via P2P/direct pointer/read
+192-9-146-172:7084:7154 [2] NCCL INFO Channel 00/0 : 2[2] -> 3[3] via P2P/direct pointer/read
+192-9-146-172:7084:7153 [3] NCCL INFO Channel 01/0 : 3[3] -> 4[4] via P2P/direct pointer/read
+192-9-146-172:7084:7151 [5] NCCL INFO Channel 03/0 : 5[5] -> 6[6] via P2P/direct pointer/read
+192-9-146-172:7084:7156 [0] NCCL INFO Channel 00/0 : 0[0] -> 1[1] via P2P/direct pointer/read
+192-9-146-172:7084:7152 [4] NCCL INFO Channel 01/0 : 4[4] -> 5[5] via P2P/direct pointer/read
+192-9-146-172:7084:7150 [6] NCCL INFO Channel 09/0 : 6[6] -> 7[7] via P2P/direct pointer/read
+192-9-146-172:7084:7156 [0] NCCL INFO Channel 01/0 : 0[0] -> 1[1] via P2P/direct pointer/read
+192-9-146-172:7084:7149 [7] NCCL INFO Channel 05/0 : 7[7] -> 0[0] via P2P/direct pointer/read
+192-9-146-172:7084:7153 [3] NCCL INFO Channel 02/0 : 3[3] -> 4[4] via P2P/direct pointer/read
+192-9-146-172:7084:7151 [5] NCCL INFO Channel 04/0 : 5[5] -> 6[6] via P2P/direct pointer/read
+192-9-146-172:7084:7154 [2] NCCL INFO Channel 01/0 : 2[2] -> 3[3] via P2P/direct pointer/read
+
+===== done =====
+Saved: /home/ubuntu/probe/192-9-146-172-20260929T161822Z.txt

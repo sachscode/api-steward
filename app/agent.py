@@ -5,13 +5,13 @@ from time import perf_counter
 from uuid import uuid4
 
 from .tools import SYSTEM, TOOLS, execute_tool
-from .transport import STAGES, ServeError, endpoint, post_json
+from .transport import ServeError, endpoint, post_json, took_serve_path
 
 DEFAULT_TASK = "Assess the Stripe invoice-preview upgrade to SDK v12 and API 2025-03-31.basil."
 
 
 class GatewayClient:
-    def __init__(self, base_url: str, model: str = "fixture-model"):
+    def __init__(self, base_url: str, model: str = "steward"):
         self.url, self.model = endpoint(base_url), model
 
     def complete(self, messages, *, tenant, workload_class, job_id, step, timeout):
@@ -33,7 +33,7 @@ class GatewayClient:
         trace = body.get("steward")
         if (
             not isinstance(trace, dict)
-            or trace.get("stages") != STAGES
+            or not took_serve_path(trace.get("stages"))
             or trace.get("job_id") != job_id
             or trace.get("step") != step
             or trace.get("tenant") != tenant
@@ -100,11 +100,7 @@ def run_agent(
                 raise ServeError(502, "invalid_assistant_message")
             calls = message.get("tool_calls")
             if calls:
-                if (
-                    choice.get("finish_reason") != "tool_calls"
-                    or not isinstance(calls, list)
-                    or len(calls) != 1
-                ):
+                if choice.get("finish_reason") != "tool_calls" or not isinstance(calls, list) or len(calls) != 1:
                     raise ServeError(502, "expected_one_complete_tool_call")
                 call = calls[0]
                 if (

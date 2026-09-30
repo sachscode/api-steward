@@ -1,4 +1,4 @@
-"""Small bounded JSON transport shared by the gateway and application."""
+"""Small bounded JSON transport the application uses to reach the gateway."""
 
 import json
 import re
@@ -6,7 +6,16 @@ from urllib import error, request
 from urllib.parse import urlsplit
 
 MAX_RESPONSE_BYTES = 262_144
-STAGES = ["guardrails", "admit", "place", "queue", "worker"]
+# Every completion must prove it took the serve path. The gateway reports the stages it ran:
+# a hop appears only when KV moved between engines; overflow replaces the local engine.
+SERVE_PATH_PREFIX = ["guardrails", "admit", "place", "queue"]
+SERVE_PATH_ENDINGS = (["engine"], ["hop", "engine"], ["overflow"])
+
+
+def took_serve_path(stages: object) -> bool:
+    if not isinstance(stages, list) or stages[:4] != SERVE_PATH_PREFIX:
+        return False
+    return stages[4:] in SERVE_PATH_ENDINGS
 
 
 class ServeError(Exception):
@@ -49,6 +58,8 @@ def post_json(url: str, body: dict, timeout: float, api_key: str = "") -> dict:
         try:
             detail = json.loads(exc.read(MAX_RESPONSE_BYTES))
             candidate = detail.get("error") if isinstance(detail, dict) else None
+            if isinstance(candidate, dict):
+                candidate = candidate.get("code")
             if isinstance(candidate, str) and re.fullmatch(r"[a-z_]{1,80}", candidate):
                 code = candidate
         except (ValueError, OSError):
