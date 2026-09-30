@@ -1,0 +1,8 @@
+# Gateway runtime: Python + the control plane's dependencies only. The code itself is mounted
+# from the synced repo (/srv/steward), so a code change is rsync + rollout restart, not a rebuild.
+FROM python:3.12-slim
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+WORKDIR /srv/steward
+ENV PYTHONPATH=/srv/steward PYTHONUNBUFFERED=1
+CMD ["python", "-m", "control"]

@@ -1,4 +1,4 @@
-"""Render the vLLM engine Deployments, Services and KEDA ScaledObjects as Kubernetes YAML.
+"""Render the engine Deployments, Services, KEDA ScaledObjects and the gateway as Kubernetes YAML.
 
     python3 render_engines.py rehearsal | kubectl apply -f -
     python3 render_engines.py a100 | kubectl apply -f -
@@ -27,6 +27,13 @@ PROFILES = {
         "ucx_devices": "all",
         "keda": {"prefill": 2, "decode": 8},
         "shm": "2Gi",
+        "gateway": {
+            "node_pool": "rehearsal",
+            "kv_bytes_per_token": 114_688,
+            "hop_min_tokens": 200,
+            "prefill_slot_cap": 4,
+            "decode_slot_cap": 16,
+        },
     },
     # Two 8x A100 40GB hosts: prefill pool on host A, decode pool on host B, TP=4 engines.
     "a100": {
@@ -40,6 +47,13 @@ PROFILES = {
         "ucx_devices": "mlx5_0:1",
         "keda": {"prefill": 8, "decode": 192},
         "shm": "16Gi",
+        "gateway": {
+            "node_pool": "prefill",
+            "kv_bytes_per_token": 98_304,
+            "hop_min_tokens": 512,
+            "prefill_slot_cap": 8,
+            "decode_slot_cap": 192,
+        },
     },
 }
 
@@ -194,21 +208,114 @@ def scaler(profile: dict, pool: str) -> dict:
     }
 
 
+def gateway(profile: dict, repo: str, image: str) -> list[dict]:
+    """The gateway box: its own Deployment on the pool-A node, not inside an engine pod.
+    It reaches every engine slot through that slot's Service; a slot KEDA has scaled to zero
+    has no endpoints, so the gateway sees it as down until KEDA starts it."""
+    g = profile["gateway"]
+    engines = ",".join(
+        f"{pool}-{slot}=http://vllm-{pool}-{slot}:{PORTS[pool][slot][0]}"
+        for pool in ("prefill", "decode")
+        for slot in (0, 1)
+    )
+    env = {
+        "ENGINES": engines,
+        "SERVE_HOST": "0.0.0.0",
+        "SERVE_PORT": "8080",
+        "KV_BYTES_PER_TOKEN": str(g["kv_bytes_per_token"]),
+        "HOP_MIN_TOKENS": str(g["hop_min_tokens"]),
+        "PREFILL_SLOT_CAP": str(g["prefill_slot_cap"]),
+        "DECODE_SLOT_CAP": str(g["decode_slot_cap"]),
+        "TRACE_PATH": "/srv/steward/metrics/traces/cluster.jsonl",
+        "OVERFLOW_BASE_URL": "https://api.superlinked.com/v1",
+        "OVERFLOW_MODEL": "Qwen/Qwen3.5-4B",
+    }
+    labels = {"app": "orch-serve"}
+    deployment = {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": {"name": "orch-serve", "labels": labels},
+        "spec": {
+            "replicas": 1,
+            # hostPort 8080 fits one pod per node: stop the old gateway before starting the new
+            # one, or a rolling update deadlocks (new pod cannot bind, old pod never retires).
+            "strategy": {"type": "Recreate"},
+            "selector": {"matchLabels": labels},
+            "template": {
+                "metadata": {
+                    "labels": labels,
+                    "annotations": {
+                        "prometheus.io/scrape": "true",
+                        "prometheus.io/port": "8080",
+                        "prometheus.io/path": "/metrics",
+                    },
+                },
+                "spec": {
+                    "nodeSelector": {"steward/pool": g["node_pool"]},
+                    "containers": [
+                        {
+                            "name": "gateway",
+                            "image": image,
+                            "imagePullPolicy": "Never",
+                            "env": [{"name": k, "value": v} for k, v in env.items()]
+                            + [
+                                {
+                                    # kubectl create secret generic overflow --from-literal=OVERFLOW_API_KEY=...
+                                    "name": "OVERFLOW_API_KEY",
+                                    "valueFrom": {
+                                        "secretKeyRef": {
+                                            "name": "overflow",
+                                            "key": "OVERFLOW_API_KEY",
+                                            "optional": True,
+                                        }
+                                    },
+                                }
+                            ],
+                            "ports": [{"containerPort": 8080, "hostPort": 8080, "name": "http"}],
+                            "readinessProbe": {"httpGet": {"path": "/healthz", "port": 8080}, "periodSeconds": 5},
+                            "volumeMounts": [{"name": "repo", "mountPath": "/srv/steward"}],
+                        }
+                    ],
+                    "volumes": [{"name": "repo", "hostPath": {"path": repo, "type": "Directory"}}],
+                },
+            },
+        },
+    }
+    service = {
+        "apiVersion": "v1",
+        "kind": "Service",
+        "metadata": {"name": "orch-serve", "labels": labels},
+        "spec": {
+            "type": "NodePort",
+            "selector": labels,
+            "ports": [{"name": "http", "port": 8080, "targetPort": 8080, "nodePort": 30080}],
+        },
+    }
+    return [deployment, service]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("profile", choices=sorted(PROFILES))
     ap.add_argument("--models", default="/opt/steward/models", help="local staged weights directory on each host")
     ap.add_argument("--image", default="docker.io/steward/vllm-nixl:v0.30.0")
     ap.add_argument("--no-keda", action="store_true", help="omit the slot-1 Deployments and ScaledObjects")
+    ap.add_argument("--gateway-only", action="store_true", help="render only the gateway (orch-serve)")
+    ap.add_argument("--repo", default="/home/ubuntu/api-steward", help="synced repo path on the gateway node")
+    ap.add_argument("--gateway-image", default="docker.io/steward/gateway:dev")
     args = ap.parse_args()
 
     profile = PROFILES[args.profile]
+    if args.gateway_only:
+        print("\n---\n".join(json.dumps(d, indent=2) for d in gateway(profile, args.repo, args.gateway_image)))
+        return
     docs = []
     for pool in ("prefill", "decode"):
         docs += engine(profile, pool, 0, args.models, args.image)
         if not args.no_keda:
             docs += engine(profile, pool, 1, args.models, args.image)
             docs.append(scaler(profile, pool))
+    docs += gateway(profile, args.repo, args.gateway_image)
     # JSON is valid YAML; kubectl accepts a stream separated by '---'.
     print("\n---\n".join(json.dumps(d, indent=2) for d in docs))
 

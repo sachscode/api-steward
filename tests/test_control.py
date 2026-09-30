@@ -302,3 +302,34 @@ def test_agent_runs_end_to_end_through_the_http_gateway():
     assert "nixl" in modes  # the growing context crossed hop_min_tokens at some step
     assert "orch_hop_total" in metrics and "orch_replica_queue_depth" in metrics
     assert set(state["engines"]) == {"prefill-0", "decode-0"}
+
+
+async def test_client_disconnect_cancels_engine_call_and_frees_slots():
+    engines = [FakeEngine("decode-0", 8001)]
+    fleet = FakeFleet(engines)
+    closed = asyncio.Event()
+
+    async def slow_stream():
+        try:
+            yield b'data: {"id":"x","choices":[{"index":0,"delta":{"role":"assistant"}}]}\n\n'
+            await asyncio.sleep(30)  # the engine is still decoding when the client leaves
+        finally:
+            closed.set()  # the gateway closed the upstream stream: vLLM would abort here
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/metrics":
+            return httpx.Response(200, text=engines[0].metrics())
+        return httpx.Response(200, content=slow_stream(), headers={"content-type": "text/event-stream"})
+
+    gw = Gateway(settings(fleet, engines), httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    await ready(gw)
+    task = asyncio.create_task(gw.complete(payload()))
+    await asyncio.sleep(0.2)
+    queue = gw.fleet.states["decode-0"].queue
+    assert queue.inflight == 1 and gw.tenants.inflight("demo-a") == 1
+    task.cancel()  # what serve.py does when the HTTP client disconnects
+    await asyncio.gather(task, return_exceptions=True)
+    await asyncio.wait_for(closed.wait(), 2)
+    aborted = gw.metrics.aborted.labels("decode")._value.get()
+    await gw.stop()
+    assert queue.inflight == 0 and gw.tenants.inflight("demo-a") == 0 and aborted == 1
