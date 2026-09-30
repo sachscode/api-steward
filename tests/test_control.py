@@ -345,3 +345,22 @@ async def test_tenant_window_refunds_unused_output_budget():
     await gw.stop()
     real = body["usage"]["prompt_tokens"] + body["usage"]["completion_tokens"]
     assert status == 200 and used == real  # reserved prompt + 512, settled to what was used
+
+
+async def test_debug_state_is_json_with_a_never_scraped_engine():
+    engines = [FakeEngine("decode-0", 8001), FakeEngine("decode-1", 8002, up=False)]
+    fleet = FakeFleet(engines)
+    gw = Gateway(settings(fleet, engines), httpx.AsyncClient(transport=fleet.transport()))
+    await ready_one(gw, "decode-0")
+    state = json.loads(json.dumps(gw.state(), allow_nan=False))
+    await gw.stop()
+    assert state["engines"]["decode-1"]["age_s"] is None and state["engines"]["decode-1"]["ok"] is False
+
+
+async def ready_one(gw: Gateway, engine: str) -> None:
+    await gw.start()
+    for _ in range(100):
+        if gw.fleet.states[engine].ok:
+            return
+        await asyncio.sleep(0.02)
+    raise AssertionError(f"{engine} never became ready")

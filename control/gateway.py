@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
@@ -280,7 +281,7 @@ class Gateway:
             engines[eid] = {
                 "pool": s.pool,
                 "ok": s.ok,
-                "age_s": round(s.age_s, 2),
+                "age_s": round(s.age_s, 2) if math.isfinite(s.age_s) else None,  # None: never scraped
                 "warm": s.warm_state,
                 "ramp_weight": s.ramp_weight,
                 "slot_cap": s.slot_cap,
