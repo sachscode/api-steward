@@ -41,7 +41,7 @@ class EngineState:
         self.warm = "cold"
         self.ramp_index = 0
         self.ramp_since = 0.0
-        self.ttfts: deque[float] = deque(maxlen=50)  # recent client TTFTs served by this engine
+        self.ttfts: deque[float] = deque(maxlen=50)  # recent engine TTFTs (dispatch -> first token)
 
     def snapshot(self, now: float) -> Snapshot:
         r = self.raw
@@ -198,10 +198,17 @@ class Fleet:
                 return  # the scrape loop will retry when the engine looks healthy again
             self.metrics.warmup_ttft.labels(eid).observe(time.perf_counter() - t0)
         self.prefix_holders.setdefault(self.warmup_prefix_key, {})[eid] = time.monotonic()
+        uptime = time.time() - state.start_time if state.start_time else 0.0
+        if uptime >= self.settings.warm_uptime_s:
+            state.warm = "warm"
+            state.queue.set_weight(1.0)
+            self._publish_warm(state)
+            log.info("%s warm-up done; engine up %.0f s, so warm without a ramp", eid, uptime)
+            return
         state.warm, state.ramp_index, state.ramp_since = "ramping", 0, time.monotonic()
         state.queue.set_weight(self.settings.ramp_weights[0])
         self._publish_warm(state)
-        log.info("%s warm-up done; ramping", eid)
+        log.info("%s warm-up done; engine up %.0f s, ramping", eid, uptime)
 
     warmup_prefix_key = ""  # set by the gateway to guard.PREFIX_KEY
 

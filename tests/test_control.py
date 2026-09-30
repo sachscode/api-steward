@@ -364,3 +364,22 @@ async def ready_one(gw: Gateway, engine: str) -> None:
             return
         await asyncio.sleep(0.02)
     raise AssertionError(f"{engine} never became ready")
+
+
+async def test_ramp_judges_engine_time_and_skips_long_running_engines():
+    engines = [
+        FakeEngine("decode-0", 8001, start_time=time.time() - 3600),
+        FakeEngine("decode-1", 8002, start_time=time.time()),
+    ]
+    fleet = FakeFleet(engines)
+    gw = Gateway(settings(fleet, engines, warmup_requests=1), httpx.AsyncClient(transport=fleet.transport()))
+    await ready(gw)
+    old, new = gw.fleet.states["decode-0"], gw.fleet.states["decode-1"]
+    assert old.warm == "warm" and old.queue.weight == 1.0  # up an hour: no ramp after a gateway restart
+    assert new.warm == "ramping" and new.queue.weight == 0.25  # just started: ramp
+    status, body, _ = await gw.complete(payload())
+    await gw.stop()
+    st = body["steward"]
+    assert status == 200 and st["engine_ttft_s"] <= st["ttft_s"]
+    served = gw.fleet.states[st["decode"]]
+    assert served.ttfts[-1] == pytest.approx(st["engine_ttft_s"], abs=1e-3)

@@ -71,6 +71,9 @@ class Settings:
     warmup_requests: int = 3
     ramp_weights: tuple[float, ...] = (0.25, 0.5, 1.0)
     ramp_step_s: float = 15.0
+    # An engine process older than this is treated as warm when the gateway (re)starts: the
+    # ramp protects engines that just started, not ones the gateway merely forgot about.
+    warm_uptime_s: float = 300.0
     max_context_chars: int = 48_000
     max_steps: int = 8
     max_output_tokens: int = 512

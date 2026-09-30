@@ -136,6 +136,7 @@ class Gateway:
             plan.stage = "queue"
             async with decode_state.queue.slot(req) as waited_d:
                 tr["queue_wait_decode_s"] = round(waited_d, 4)
+                dispatched = time.monotonic()  # engine time starts here; our queue wait is excluded
                 kv_params = None
                 if plan.hop_mode == "nixl" and plan.prefill is not None:
                     prefill_state = self.fleet.states[plan.prefill.engine]
@@ -167,10 +168,15 @@ class Gateway:
                 async for chunk in decode_state.engine.stream(req.body, kv_params):
                     if first and _has_token(chunk):
                         first = False
-                        ttft = time.monotonic() - req.arrival  # from gateway arrival: includes queue, prefill, hop
-                        tr["ttft_s"] = round(ttft, 4)
+                        now = time.monotonic()
+                        ttft = now - req.arrival  # client view: our queue + prefill + hop + first token
+                        engine_ttft = now - dispatched  # engine view: prefill + hop + first token
+                        tr["ttft_s"], tr["engine_ttft_s"] = round(ttft, 4), round(engine_ttft, 4)
                         self.metrics.ttft.labels(req.klass, plan.hop_mode).observe(ttft)
-                        self.fleet.record_ttft(plan.decode.engine, ttft)
+                        self.metrics.engine_ttft.labels(plan.decode.engine).observe(engine_ttft)
+                        # The ramp judges the engine, not our queue: feeding client TTFT back
+                        # into the ramp held it at 25% while the queue it caused grew (A10 run).
+                        self.fleet.record_ttft(plan.decode.engine, engine_ttft)
                     if chunk.get("usage"):
                         tr["prompt_tokens"] = chunk["usage"].get("prompt_tokens")
                         tr["completion_tokens"] = chunk["usage"].get("completion_tokens")

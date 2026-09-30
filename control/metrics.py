@@ -27,6 +27,9 @@ class Metrics:
         self.ttft = Histogram(
             "orch_ttft_seconds", "Client-side time to first token", ["klass", "path"], buckets=LAT, registry=r
         )
+        self.engine_ttft = Histogram(
+            "orch_engine_ttft_seconds", "Dispatch to first token (excludes our queue)", ["pod"], buckets=LAT, registry=r
+        )
         self.e2e = Histogram("orch_e2e_seconds", "Client-side end to end", ["klass", "path"], buckets=LAT, registry=r)
         self.prefill = Histogram(
             "orch_prefill_seconds", "Remote prefill call (max_tokens=1)", ["pod"], buckets=LAT, registry=r
