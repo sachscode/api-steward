@@ -19,6 +19,7 @@ class FakeEngine:
     start_time: float = 1000.0
     status: int = 200  # force errors on completions
     up: bool = True
+    kv_blocks: int = 100_000
     requests: list[dict] = field(default_factory=list)
 
     def metrics(self) -> str:
@@ -27,6 +28,7 @@ class FakeEngine:
             f'vllm:num_requests_running{{engine="0",model_name="steward"}} {self.running}\n'
             f'vllm:num_requests_waiting{{engine="0",model_name="steward"}} {self.waiting}\n'
             f"process_start_time_seconds {self.start_time}\n"
+            f'vllm:cache_config_info{{block_size="16",num_gpu_blocks="{self.kv_blocks}",enable_prefix_caching="True"}} 1.0\n'
         )
 
 

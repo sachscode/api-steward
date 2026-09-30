@@ -32,11 +32,26 @@ WATCHED = {
 }
 
 
+def _label(line: str, key: str) -> str | None:
+    marker = f'{key}="'
+    i = line.find(marker)
+    if i < 0:
+        return None
+    j = line.find('"', i + len(marker))
+    return line[i + len(marker) : j]
+
+
 def parse_metrics(text: str) -> dict[str, float]:
-    """Sum each watched metric across label sets (one engine may report per-rank series)."""
+    """Sum each watched metric across label sets (one engine may report per-rank series).
+    Also reads the engine's KV capacity in tokens from vllm:cache_config_info."""
     out: dict[str, float] = {}
     for line in text.splitlines():
         if not line or line[0] == "#":
+            continue
+        if line.startswith("vllm:cache_config_info{"):
+            blocks, size = _label(line, "num_gpu_blocks"), _label(line, "block_size")
+            if blocks and size and blocks.isdigit() and size.isdigit():
+                out["kv_tokens"] = float(int(blocks) * int(size))
             continue
         name = line.split("{", 1)[0].split(" ", 1)[0]
         key = WATCHED.get(name)

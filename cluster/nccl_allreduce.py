@@ -20,9 +20,9 @@ import torch.distributed as dist
 def main():
     dist.init_process_group("nccl")
     rank, world = dist.get_rank(), dist.get_world_size()
-    local = int(os.environ.get("LOCAL_RANK", 0))
+    local = int(os.environ.get("LOCAL_RANK", "0"))
     torch.cuda.set_device(local)
-    nodes = world // int(os.environ.get("LOCAL_WORLD_SIZE", world))
+    nodes = world // int(os.environ.get("LOCAL_WORLD_SIZE", str(world)))
 
     sizes = [2**p for p in range(3, 31, 2)]  # 8 B .. 512 MiB, every 4x
     if rank == 0:

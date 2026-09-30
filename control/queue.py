@@ -2,10 +2,13 @@
 
 admit -> place -> THIS QUEUE -> engine waiting / running / preempt
 
-Each engine gets a fixed number of dispatch slots. A request waits here until a slot frees,
-so vLLM's own waiting queue stays short and the gateway, not the engine, decides what runs
-next: interactive before batch, batch promoted after batch_aging_s so it is not starved, and
-anything past its deadline dropped at dequeue (timeout_queue) instead of wasting GPU time.
+Each engine gets dispatch slots and a KV token budget. A request waits here until a slot is
+free AND its tokens (prompt + output budget) fit in the engine's KV budget, so vLLM's own
+waiting queue stays short, KV never overfills (no preemption), and the gateway, not the
+engine, decides what runs next: interactive before batch, batch promoted after batch_aging_s
+so it is not starved, and anything past its deadline dropped at dequeue (timeout_queue).
+Priority is strict: if the next request does not fit, smaller ones do not jump ahead, so long
+prompts are never starved. An idle engine always takes the next request, however large.
 Ramping an engine up after a restart is done by opening its slots gradually.
 """
 
@@ -28,6 +31,7 @@ class QueueTimeout(Exception):
 class _Waiter:
     req: Request
     fut: asyncio.Future
+    tokens: int = 0
     since: float = field(default_factory=time.monotonic)
 
 
@@ -37,6 +41,8 @@ class EngineQueue:
         self.weight = 1.0
         self.metrics, self.batch_aging_s = metrics, batch_aging_s
         self.inflight = 0
+        self.tokens_inflight = 0
+        self.token_cap: int | None = None  # KV tokens this engine may hold; set from vLLM's block count
         self.waiters: list[_Waiter] = []
         self.service_s = 1.0  # EWMA of slot hold time, for predicted wait
         self._publish()
@@ -49,6 +55,17 @@ class EngineQueue:
         self.weight = weight
         self._grant()
         self._publish()
+
+    def set_token_cap(self, tokens: int | None) -> None:
+        if tokens != self.token_cap:
+            self.token_cap = tokens
+            self._grant()
+            self._publish()
+
+    def fits(self, tokens: int) -> bool:
+        if self.token_cap is None or self.tokens_inflight == 0:
+            return True
+        return self.tokens_inflight + tokens <= self.token_cap
 
     def depth(self, klass: str | None = None) -> int:
         return sum(1 for w in self.waiters if klass is None or w.req.klass == klass)
@@ -72,18 +89,24 @@ class EngineQueue:
         now = time.monotonic()
         while self.inflight < self.cap and self.waiters:
             best = min(self.waiters, key=lambda w: (self._rank(w, now), w.req.arrival))
-            self.waiters.remove(best)
             if best.fut.done():
+                self.waiters.remove(best)
                 continue
             if best.req.deadline <= now:
+                self.waiters.remove(best)
                 best.fut.set_exception(QueueTimeout())
                 continue
+            if not self.fits(best.tokens):
+                break  # strict priority: wait for KV to free rather than let smaller ones jump
+            self.waiters.remove(best)
             self.inflight += 1
+            self.tokens_inflight += best.tokens
             best.fut.set_result(None)
         self._publish()
 
-    def _release(self, held_s: float) -> None:
+    def _release(self, held_s: float, tokens: int) -> None:
         self.inflight -= 1
+        self.tokens_inflight -= tokens
         self.service_s = 0.8 * self.service_s + 0.2 * held_s
         self._grant()
 
@@ -92,15 +115,18 @@ class EngineQueue:
             self.metrics.queue_depth.labels(self.engine, self.pool, klass).set(self.depth(klass))
         self.metrics.inflight.labels(self.engine, self.pool).set(self.inflight)
         self.metrics.slot_cap.labels(self.engine, self.pool).set(self.cap)
+        self.metrics.tokens_inflight_engine.labels(self.engine, self.pool).set(self.tokens_inflight)
+        self.metrics.token_cap.labels(self.engine, self.pool).set(self.token_cap or 0)
 
-    async def _acquire(self, req: Request) -> float:
+    async def _acquire(self, req: Request, tokens: int) -> float:
         t0 = time.monotonic()
-        if self.inflight < self.cap and not self.waiters:
+        if self.inflight < self.cap and not self.waiters and self.fits(tokens):
             self.inflight += 1
+            self.tokens_inflight += tokens
             self._publish()
             return 0.0
         fut = asyncio.get_running_loop().create_future()
-        waiter = _Waiter(req, fut)
+        waiter = _Waiter(req, fut, tokens)
         self.waiters.append(waiter)
         self._publish()
         try:
@@ -113,7 +139,7 @@ class EngineQueue:
         except asyncio.CancelledError:
             # Client went away while queued. If a slot was granted in the meantime, give it back.
             if fut.done() and not fut.cancelled() and fut.exception() is None:
-                self._release(0.0)
+                self._release(0.0, tokens)
             else:
                 self._drop(waiter)
             raise
@@ -127,11 +153,12 @@ class EngineQueue:
         self._publish()
 
     @asynccontextmanager
-    async def slot(self, req: Request):
-        waited = await self._acquire(req)
+    async def slot(self, req: Request, tokens: int = 0):
+        """Hold one dispatch slot and `tokens` of the engine's KV budget while the body runs."""
+        waited = await self._acquire(req, tokens)
         self.metrics.queue_wait.labels(self.pool, req.klass).observe(waited)
         start = time.monotonic()
         try:
             yield waited
         finally:
-            self._release(time.monotonic() - start)
+            self._release(time.monotonic() - start, tokens)

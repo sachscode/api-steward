@@ -21,6 +21,15 @@ class Metrics:
         )
         self.inflight = Gauge("orch_replica_inflight", "Requests dispatched to the engine", ["pod", "pool"], registry=r)
         self.slot_cap = Gauge("orch_replica_slot_cap", "Dispatch slots (ramp-adjusted)", ["pod", "pool"], registry=r)
+        self.tokens_inflight_engine = Gauge(
+            "orch_replica_tokens_inflight", "KV tokens reserved by dispatched requests", ["pod", "pool"], registry=r
+        )
+        self.token_cap = Gauge(
+            "orch_replica_token_cap",
+            "KV token budget (vLLM blocks x block size x high water)",
+            ["pod", "pool"],
+            registry=r,
+        )
         self.queue_wait = Histogram(
             "orch_queue_wait_seconds", "Time in the gateway queue", ["pool", "klass"], buckets=LAT, registry=r
         )

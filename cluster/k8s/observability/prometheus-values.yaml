@@ -1,6 +1,10 @@
 server:
   persistentVolume:
     enabled: false
+  # Fixed NodePort so the Part 5 notebook can query Prometheus through an SSH tunnel.
+  service:
+    type: NodePort
+    nodePort: 30090
   global:
     scrape_interval: 15s
     scrape_timeout: 10s

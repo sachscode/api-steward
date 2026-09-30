@@ -153,6 +153,9 @@ class Fleet:
                 raw = await state.engine.scrape()
                 restarted = state.start_time is not None and raw.get("start_time") not in (None, state.start_time)
                 state.raw, state.scraped_at = raw, time.monotonic()
+                if "kv_tokens" in raw:  # protect KV at our door: dispatch only what fits
+                    water = self.settings.kv_high_water["interactive"]
+                    state.queue.set_token_cap(int(raw["kv_tokens"] * water))
                 state.start_time = raw.get("start_time", state.start_time)
                 if restarted:
                     log.warning("%s restarted: back to cold", eid)

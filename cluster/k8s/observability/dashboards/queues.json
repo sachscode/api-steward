@@ -208,6 +208,61 @@
     },
     {
       "type": "timeseries",
+      "title": "KV tokens reserved vs budget",
+      "description": "Dispatch waits when prompt + output budget would push reserved tokens past the engine's KV budget.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "orch_replica_tokens_inflight",
+          "legendFormat": "reserved {{pod}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "orch_replica_token_cap",
+          "legendFormat": "budget {{pod}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "id": 5,
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
       "title": "Queue wait p50 / p99 by pool and class",
       "description": "",
       "datasource": {
@@ -253,9 +308,9 @@
           "placement": "bottom"
         }
       },
-      "id": 5,
+      "id": 6,
       "gridPos": {
-        "x": 0,
+        "x": 12,
         "y": 16,
         "w": 12,
         "h": 8
@@ -299,10 +354,10 @@
           "placement": "bottom"
         }
       },
-      "id": 6,
+      "id": 7,
       "gridPos": {
-        "x": 12,
-        "y": 16,
+        "x": 0,
+        "y": 24,
         "w": 12,
         "h": 8
       }

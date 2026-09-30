@@ -78,6 +78,14 @@ def inspect(payload: object, settings: Settings) -> Guard:
     if size > settings.max_context_chars:
         return _no(413, "context_too_large", f"context is {size} characters, limit {settings.max_context_chars}")
 
+    prompt_tokens = estimate_tokens(messages, TOOLS)
+    if prompt_tokens + max_tokens > settings.max_model_len:
+        return _no(
+            413,
+            "context_too_long",
+            f"~{prompt_tokens} prompt tokens + {max_tokens} output > max_model_len {settings.max_model_len}",
+        )
+
     stream = bool(payload.get("stream", False))
     timeout_s = min(float(payload.get("timeout_s", settings.deadline_s[klass])), settings.deadline_s[klass])
 
@@ -102,7 +110,7 @@ def inspect(payload: object, settings: Settings) -> Guard:
         job_id=job_id,
         step=step,
         body=body,
-        prompt_tokens=estimate_tokens(messages, TOOLS),
+        prompt_tokens=prompt_tokens,
         max_tokens=max_tokens,
         prefix_key=PREFIX_KEY,
         client_stream=stream,

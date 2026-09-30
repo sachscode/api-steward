@@ -296,6 +296,11 @@ def build() -> dict[str, dict]:
             ),
             panel("vLLM running by engine", [("vllm:num_requests_running", "{{pool}}-{{slot}}")]),
             panel(
+                "KV tokens reserved vs budget",
+                [("orch_replica_tokens_inflight", "reserved {{pod}}"), ("orch_replica_token_cap", "budget {{pod}}")],
+                desc="Dispatch waits when prompt + output budget would push reserved tokens past the engine's KV budget.",
+            ),
+            panel(
                 "Queue wait p50 / p99 by pool and class",
                 [
                     (q(0.5, "orch_queue_wait_seconds", "pool, klass"), "p50 {{pool}} {{klass}}"),
@@ -402,7 +407,7 @@ def build() -> dict[str, dict]:
                 "KV bytes moved /s: vLLM measured vs gateway estimate",
                 [
                     ("sum by (pool) (rate(vllm:nixl_bytes_transferred_sum" + R + "))", "measured ({{pool}})"),
-                    ("sum(rate(orch_hop_bytes_estimated_total" + R + "))", "estimated (blocks x 16 x bytes/token)"),
+                    ("sum(rate(orch_hop_bytes_estimated_total" + R + "))", "upper bound: all prompt blocks (gateway)"),
                 ],
                 "Bps",
             ),

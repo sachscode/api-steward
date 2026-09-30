@@ -47,7 +47,9 @@ def main():
     ap.add_argument("--max-tokens", type=int, default=64)
     args = ap.parse_args()
 
-    context = " ".join(["The /invoice-preview route calls stripe.Invoice.upcoming with subscription_items."] * args.repeat)
+    context = " ".join(
+        ["The /invoice-preview route calls stripe.Invoice.upcoming with subscription_items."] * args.repeat
+    )
     request = {
         "model": args.model,
         "messages": [
@@ -79,8 +81,10 @@ def main():
         return 1
     blocks = kvp.get("remote_block_ids") or []
     nblocks = sum(len(b) for b in blocks) if blocks and isinstance(blocks[0], list) else len(blocks)
-    print(f"[hop]     engine={kvp.get('remote_engine_id')} host={kvp.get('remote_host')} "
-          f"port={kvp.get('remote_port')} blocks={nblocks}")
+    print(
+        f"[hop]     engine={kvp.get('remote_engine_id')} host={kvp.get('remote_host')} "
+        f"port={kvp.get('remote_port')} blocks={nblocks}"
+    )
 
     dec, t_dec = post(f"{args.decode}/v1/chat/completions", dict(request, kv_transfer_params=kvp))
     text = dec["choices"][0]["message"]["content"]

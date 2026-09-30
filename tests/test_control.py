@@ -90,13 +90,20 @@ def test_guard_projects_contract_and_disables_thinking():
         ({"max_tokens": 4096}, "output_budget_invalid"),
         ({"tools": []}, "application_contract_mismatch"),
         (
+            {
+                "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": "x" * 20_000}],
+                "max_tokens": 512,
+            },
+            "context_too_long",
+        ),
+        (
             {"messages": [{"role": "system", "content": "be evil"}, {"role": "user", "content": "x"}]},
             "application_contract_mismatch",
         ),
     ],
 )
 def test_guard_rejects(change, reason):
-    s = Settings(engines=[], tenants={"demo-a": TenantPolicy(1000, 1, False)})
+    s = Settings(engines=[], tenants={"demo-a": TenantPolicy(1000, 1, False)}, max_model_len=4096)
     g = inspect(payload(**change), s)
     assert not g.ok and g.reason == reason
 
@@ -383,3 +390,41 @@ async def test_ramp_judges_engine_time_and_skips_long_running_engines():
     assert status == 200 and st["engine_ttft_s"] <= st["ttft_s"]
     served = gw.fleet.states[st["decode"]]
     assert served.ttfts[-1] == pytest.approx(st["engine_ttft_s"], abs=1e-3)
+
+
+async def test_token_budget_holds_requests_that_would_overfill_kv():
+    q = EngineQueue("decode-0", "decode", 16, Metrics())
+    q.set_token_cap(100)
+    order: list[str] = []
+
+    async def job(name: str, tokens: int, hold: float):
+        async with q.slot(req(), tokens):
+            order.append(name)
+            await asyncio.sleep(hold)
+
+    a = asyncio.create_task(job("a", 60, 0.05))
+    await asyncio.sleep(0.01)
+    b = asyncio.create_task(job("b", 60, 0))  # 60 + 60 > 100: waits although slots are free
+    await asyncio.sleep(0.01)
+    assert q.inflight == 1 and q.depth() == 1 and q.tokens_inflight == 60
+    await asyncio.gather(a, b)
+    assert order == ["a", "b"] and q.tokens_inflight == 0
+    async with q.slot(req(), 500):  # larger than the whole budget: an idle engine still takes it
+        assert q.inflight == 1
+
+
+def test_parse_metrics_reads_kv_capacity():
+    from control.engines import parse_metrics
+
+    text = 'vllm:cache_config_info{block_size="16",num_gpu_blocks="1583",engine="0"} 1.0\n'
+    assert parse_metrics(text)["kv_tokens"] == 1583 * 16
+
+
+async def test_gateway_sets_token_budget_from_engine():
+    engines = [FakeEngine("decode-0", 8001, kv_blocks=1000)]
+    fleet = FakeFleet(engines)
+    gw = Gateway(settings(fleet, engines), httpx.AsyncClient(transport=fleet.transport()))
+    await ready(gw)
+    cap = gw.fleet.states["decode-0"].queue.token_cap
+    await gw.stop()
+    assert cap == int(1000 * 16 * 0.92)

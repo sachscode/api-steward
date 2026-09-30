@@ -134,13 +134,15 @@ class Gateway:
         tr.update(prefill=None, decode=plan.decode.engine, hop=None, hop_mode=plan.hop_mode, hop_reason=plan.hop_reason)
         try:
             plan.stage = "queue"
-            async with decode_state.queue.slot(req) as waited_d:
+            # Decode holds the whole sequence's KV: prompt plus output budget.
+            async with decode_state.queue.slot(req, req.cost_tokens) as waited_d:
                 tr["queue_wait_decode_s"] = round(waited_d, 4)
                 dispatched = time.monotonic()  # engine time starts here; our queue wait is excluded
                 kv_params = None
                 if plan.hop_mode == "nixl" and plan.prefill is not None:
                     prefill_state = self.fleet.states[plan.prefill.engine]
-                    async with prefill_state.queue.slot(req) as waited_p:
+                    # Prefill holds the prompt's KV until decode pulls it.
+                    async with prefill_state.queue.slot(req, req.prompt_tokens) as waited_p:
                         tr["queue_wait_prefill_s"] = round(waited_p, 4)
                         plan.stage = "prefill"
                         kv_params, usage, secs = await prefill_state.engine.prefill(req.body)
@@ -291,6 +293,8 @@ class Gateway:
                 "warm": s.warm_state,
                 "ramp_weight": s.ramp_weight,
                 "slot_cap": s.slot_cap,
+                "kv_tokens_reserved": st.queue.tokens_inflight,
+                "kv_token_budget": st.queue.token_cap,
                 "inflight": s.inflight,
                 "our_queue": {k: st.queue.depth(k) for k in ("interactive", "batch")},
                 "vllm_running": s.running,

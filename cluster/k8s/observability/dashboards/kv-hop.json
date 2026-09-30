@@ -83,7 +83,7 @@
             "uid": "prometheus"
           },
           "expr": "sum(rate(orch_hop_bytes_estimated_total[1m]))",
-          "legendFormat": "estimated (blocks x 16 x bytes/token)",
+          "legendFormat": "upper bound: all prompt blocks (gateway)",
           "refId": "B"
         }
       ],

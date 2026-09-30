@@ -231,6 +231,7 @@ def gateway(profile: dict, repo: str, image: str, tenants: str = "") -> list[dic
         "DECODE_SLOT_CAP": str(g["decode_slot_cap"]),
         "TRACE_PATH": "/srv/steward/metrics/traces/cluster.jsonl",
         "TENANTS": tenants or g["tenants"],
+        "MAX_MODEL_LEN": str(profile["max_len"]),
         "OVERFLOW_BASE_URL": "https://api.superlinked.com/v1",
         "OVERFLOW_MODEL": "Qwen/Qwen3.5-4B",
     }

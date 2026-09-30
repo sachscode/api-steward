@@ -75,6 +75,10 @@ class Settings:
     # ramp protects engines that just started, not ones the gateway merely forgot about.
     warm_uptime_s: float = 300.0
     max_context_chars: int = 48_000
+    # The engines' --max-model-len. A prompt that cannot fit with its output budget dies at
+    # guardrails: otherwise prefill (max_tokens=1) accepts it, builds KV, and decode rejects
+    # it, leaving that KV as a ghost until the NIXL lease expires (seen on the A10).
+    max_model_len: int = 32_768
     max_steps: int = 8
     max_output_tokens: int = 512
     trace_path: str = ""
@@ -114,6 +118,7 @@ def from_env(env: dict[str, str] | None = None) -> Settings:
         decode_policy=e.get("DECODE_POLICY", "p2c"),
         ttft_slo_s=float(e.get("TTFT_SLO_S", "2.0")),
         trace_path=e.get("TRACE_PATH", ""),
+        max_model_len=int(e.get("MAX_MODEL_LEN", "32768")),
     )
     s.slot_cap = {"prefill": int(e.get("PREFILL_SLOT_CAP", "8")), "decode": int(e.get("DECODE_SLOT_CAP", "64"))}
     s.overflow = OverflowSettings(

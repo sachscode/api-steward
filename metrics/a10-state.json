@@ -1,0 +1,101 @@
+{
+  "engines": {
+    "prefill-0": {
+      "pool": "prefill",
+      "ok": true,
+      "age_s": 0.04,
+      "warm": "warm",
+      "ramp_weight": 1.0,
+      "slot_cap": 4,
+      "kv_tokens_reserved": 0,
+      "kv_token_budget": 23301,
+      "inflight": 0,
+      "our_queue": {
+        "interactive": 0,
+        "batch": 0
+      },
+      "vllm_running": 0,
+      "vllm_waiting": 0,
+      "kv_usage": 0.0,
+      "preemptions": 0.0,
+      "prefix_hit_rate": 0.7229101059021958,
+      "nixl_bytes": 0.0,
+      "nixl_expired": 1.0,
+      "p99_ttft_s": null
+    },
+    "prefill-1": {
+      "pool": "prefill",
+      "ok": false,
+      "age_s": null,
+      "warm": "cold",
+      "ramp_weight": 0.0,
+      "slot_cap": 1,
+      "kv_tokens_reserved": 0,
+      "kv_token_budget": null,
+      "inflight": 0,
+      "our_queue": {
+        "interactive": 0,
+        "batch": 0
+      },
+      "vllm_running": null,
+      "vllm_waiting": null,
+      "kv_usage": null,
+      "preemptions": null,
+      "prefix_hit_rate": null,
+      "nixl_bytes": null,
+      "nixl_expired": null,
+      "p99_ttft_s": null
+    },
+    "decode-0": {
+      "pool": "decode",
+      "ok": true,
+      "age_s": 0.49,
+      "warm": "warm",
+      "ramp_weight": 1.0,
+      "slot_cap": 16,
+      "kv_tokens_reserved": 0,
+      "kv_token_budget": 23301,
+      "inflight": 0,
+      "our_queue": {
+        "interactive": 0,
+        "batch": 0
+      },
+      "vllm_running": 0,
+      "vllm_waiting": 0,
+      "kv_usage": 0.0,
+      "preemptions": 5.0,
+      "prefix_hit_rate": 0.7051659955630476,
+      "nixl_bytes": 104472510464.0,
+      "nixl_expired": 0.0,
+      "p99_ttft_s": 0.4916520099995978
+    },
+    "decode-1": {
+      "pool": "decode",
+      "ok": false,
+      "age_s": null,
+      "warm": "cold",
+      "ramp_weight": 0.0,
+      "slot_cap": 1,
+      "kv_tokens_reserved": 0,
+      "kv_token_budget": null,
+      "inflight": 0,
+      "our_queue": {
+        "interactive": 0,
+        "batch": 0
+      },
+      "vllm_running": null,
+      "vllm_waiting": null,
+      "kv_usage": null,
+      "preemptions": null,
+      "prefix_hit_rate": null,
+      "nixl_bytes": null,
+      "nixl_expired": null,
+      "p99_ttft_s": null
+    }
+  },
+  "tenants": {
+    "demo-a": 0,
+    "demo-b": 0,
+    "sweep": 0
+  }
+}
