@@ -195,7 +195,7 @@ class Gateway:
             tr["aborted_at"] = plan.stage
             raise
         finally:
-            self.tenants.done(req)
+            self.tenants.done(req, tr.get("prompt_tokens"), tr.get("completion_tokens"))
 
     async def complete(self, payload: object) -> tuple[int, dict, dict[str, str]]:
         """Non-streaming client: stream from the engine internally (so TTFT is measured), then

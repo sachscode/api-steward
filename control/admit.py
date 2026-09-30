@@ -61,12 +61,13 @@ def check(req: Request, view: FleetView, settings: Settings, tenants: TenantBook
 
 
 class TenantBook:
-    """Per-tenant token window and in-flight count."""
+    """Per-tenant token window (reserve at admission, settle on completion) and in-flight count."""
 
     def __init__(self, metrics: Metrics):
         self.metrics = metrics
         self._window: dict[str, tuple[float, int]] = {}
         self._inflight: dict[str, int] = {}
+        self._reserved: dict[str, tuple[float, int]] = {}  # request id -> (window start, tokens)
 
     def window(self, tenant: str, now: float) -> tuple[int, float]:
         start, used = self._window.get(tenant, (now, 0))
@@ -79,14 +80,27 @@ class TenantBook:
         return self._inflight.get(tenant, 0)
 
     def charge(self, req: Request) -> None:
+        """Reserve the request's budget (prompt estimate + max_tokens) at admission, so a burst
+        cannot overrun the window before any request finishes."""
         start, used = self._window.get(req.tenant, (req.arrival, 0))
         if req.arrival - start >= WINDOW_S:
             start, used = req.arrival, 0
         self._window[req.tenant] = (start, used + req.cost_tokens)
+        self._reserved[req.id] = (start, req.cost_tokens)
         self._inflight[req.tenant] = self.inflight(req.tenant) + 1
         self.metrics.tenant_tokens.labels(req.tenant).set(used + req.cost_tokens)
         self.metrics.tenant_inflight.labels(req.tenant).set(self._inflight[req.tenant])
 
-    def done(self, req: Request) -> None:
+    def done(self, req: Request, prompt_tokens: int | None = None, completion_tokens: int | None = None) -> None:
+        """Settle: refund the reserved tokens the request did not use, if its window is still
+        open. Without usage (aborted, refused by the engine) nothing is refunded."""
         self._inflight[req.tenant] = max(0, self.inflight(req.tenant) - 1)
         self.metrics.tenant_inflight.labels(req.tenant).set(self._inflight[req.tenant])
+        start, reserved = self._reserved.pop(req.id, (None, 0))
+        if start is None or prompt_tokens is None or completion_tokens is None:
+            return
+        refund = reserved - (prompt_tokens + completion_tokens)
+        current_start, used = self._window.get(req.tenant, (None, 0))
+        if refund > 0 and current_start == start:
+            self._window[req.tenant] = (start, max(0, used - refund))
+            self.metrics.tenant_tokens.labels(req.tenant).set(max(0, used - refund))

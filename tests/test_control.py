@@ -333,3 +333,15 @@ async def test_client_disconnect_cancels_engine_call_and_frees_slots():
     aborted = gw.metrics.aborted.labels("decode")._value.get()
     await gw.stop()
     assert queue.inflight == 0 and gw.tenants.inflight("demo-a") == 0 and aborted == 1
+
+
+async def test_tenant_window_refunds_unused_output_budget():
+    engines = [FakeEngine("decode-0", 8001)]
+    fleet = FakeFleet(engines)
+    gw = Gateway(settings(fleet, engines), httpx.AsyncClient(transport=fleet.transport()))
+    await ready(gw)
+    status, body, _ = await gw.complete(payload(max_tokens=512))
+    used, _ = gw.tenants.window("demo-a", time.monotonic())
+    await gw.stop()
+    real = body["usage"]["prompt_tokens"] + body["usage"]["completion_tokens"]
+    assert status == 200 and used == real  # reserved prompt + 512, settled to what was used

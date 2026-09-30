@@ -2,6 +2,7 @@
 # Build (once) and import the gateway image, then (re)deploy orch-serve.
 #
 #   bash ~/api-steward/cluster/gateway_up.sh rehearsal|a100
+#   TENANTS="demo-a:20000:4:yes,..." bash ~/api-steward/cluster/gateway_up.sh rehearsal   # tight limits
 #
 # Expects the repo synced to ~/api-steward. After a code change: rsync again, then
 #   kubectl rollout restart deploy/orch-serve
@@ -22,7 +23,7 @@ fi
 mkdir -p "$REPO/metrics/traces"
 
 EXISTED=$(kubectl get deploy orch-serve -o name 2>/dev/null || true)
-python3 "$HERE/render_engines.py" "$PROFILE" --gateway-only --repo "$REPO" | kubectl apply -f -
+python3 "$HERE/render_engines.py" "$PROFILE" --gateway-only --repo "$REPO" --tenants "${TENANTS:-}" | kubectl apply -f -
 # Restart only an existing gateway, so it picks up code synced into the mounted repo.
 [[ -n "$EXISTED" ]] && kubectl rollout restart deploy/orch-serve >/dev/null
 kubectl rollout status deploy/orch-serve --timeout=3m

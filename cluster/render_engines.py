@@ -33,6 +33,8 @@ PROFILES = {
             "hop_min_tokens": 200,
             "prefill_slot_cap": 4,
             "decode_slot_cap": 16,
+            # Loose limits so load tests stress the engines; tighten to demonstrate isolation.
+            "tenants": "demo-a:300000:24:yes,demo-b:300000:24:yes,sweep:300000:24:yes",
         },
     },
     # Two 8x A100 40GB hosts: prefill pool on host A, decode pool on host B, TP=4 engines.
@@ -53,6 +55,7 @@ PROFILES = {
             "hop_min_tokens": 512,
             "prefill_slot_cap": 8,
             "decode_slot_cap": 192,
+            "tenants": "demo-a:600000:96:yes,demo-b:600000:96:yes,sweep:600000:96:yes",
         },
     },
 }
@@ -208,7 +211,7 @@ def scaler(profile: dict, pool: str) -> dict:
     }
 
 
-def gateway(profile: dict, repo: str, image: str) -> list[dict]:
+def gateway(profile: dict, repo: str, image: str, tenants: str = "") -> list[dict]:
     """The gateway box: its own Deployment on the pool-A node, not inside an engine pod.
     It reaches every engine slot through that slot's Service; a slot KEDA has scaled to zero
     has no endpoints, so the gateway sees it as down until KEDA starts it."""
@@ -227,6 +230,7 @@ def gateway(profile: dict, repo: str, image: str) -> list[dict]:
         "PREFILL_SLOT_CAP": str(g["prefill_slot_cap"]),
         "DECODE_SLOT_CAP": str(g["decode_slot_cap"]),
         "TRACE_PATH": "/srv/steward/metrics/traces/cluster.jsonl",
+        "TENANTS": tenants or g["tenants"],
         "OVERFLOW_BASE_URL": "https://api.superlinked.com/v1",
         "OVERFLOW_MODEL": "Qwen/Qwen3.5-4B",
     }
@@ -303,11 +307,16 @@ def main():
     ap.add_argument("--gateway-only", action="store_true", help="render only the gateway (orch-serve)")
     ap.add_argument("--repo", default="/home/ubuntu/api-steward", help="synced repo path on the gateway node")
     ap.add_argument("--gateway-image", default="docker.io/steward/gateway:dev")
+    ap.add_argument("--tenants", default="", help="name:tokens_per_min:max_inflight:overflow,... (default: profile)")
     args = ap.parse_args()
 
     profile = PROFILES[args.profile]
     if args.gateway_only:
-        print("\n---\n".join(json.dumps(d, indent=2) for d in gateway(profile, args.repo, args.gateway_image)))
+        print(
+            "\n---\n".join(
+                json.dumps(d, indent=2) for d in gateway(profile, args.repo, args.gateway_image, args.tenants)
+            )
+        )
         return
     docs = []
     for pool in ("prefill", "decode"):
@@ -315,7 +324,7 @@ def main():
         if not args.no_keda:
             docs += engine(profile, pool, 1, args.models, args.image)
             docs.append(scaler(profile, pool))
-    docs += gateway(profile, args.repo, args.gateway_image)
+    docs += gateway(profile, args.repo, args.gateway_image, args.tenants)
     # JSON is valid YAML; kubectl accepts a stream separated by '---'.
     print("\n---\n".join(json.dumps(d, indent=2) for d in docs))
 
