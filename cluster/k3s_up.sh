@@ -52,6 +52,10 @@ helm repo add grafana https://grafana.github.io/helm-charts >/dev/null
 helm repo update >/dev/null
 
 echo "== HAMi =="
+# Rehearsal shares one A10 between 4 small engines (4 virtual GPUs per card). On the A100 hosts
+# each engine takes 4 WHOLE GPUs for TP=4, so one virtual GPU must equal one physical GPU;
+# with a split of 4, HAMi could place all four TP ranks on the same 40 GB card.
+SPLIT=$([[ "$POOL" == "rehearsal" ]] && echo 4 || echo 1)
 K8S_VERSION="$(kubectl version -o json | python3 -c 'import json,sys; print(json.load(sys.stdin)["serverVersion"]["gitVersion"].split("+")[0])')"
 helm_wait kube-system helm upgrade --install hami hami-charts/hami --version 2.9.0 \
   --namespace kube-system \
@@ -59,7 +63,7 @@ helm_wait kube-system helm upgrade --install hami hami-charts/hami --version 2.9
   --set scheduler.kubeScheduler.image.repository=kube-scheduler \
   --set "scheduler.kubeScheduler.image.tag=${K8S_VERSION}" \
   --set "scheduler.kubeScheduler.imageTag=${K8S_VERSION}" \
-  --set devicePlugin.deviceSplitCount=4 \
+  --set devicePlugin.deviceSplitCount="$SPLIT" \
   --wait --timeout 10m
 
 echo "== KEDA =="
