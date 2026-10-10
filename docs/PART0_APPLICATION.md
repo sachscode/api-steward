@@ -8,7 +8,7 @@ API Steward is a private API maintenance agent. A developer requests a bounded
 API/SDK upgrade; the agent inspects the integration, reads the relevant upgrade
 instructions, checks its proposed changes, and returns a migration assessment
 with evidence and outstanding validation. The first case is the Stripe
-subscription invoice-preview upgrade described in [the project plan](../PROJECT_PLAN.md).
+subscription invoice-preview upgrade described in [the project plan](planning/PROJECT_PLAN.md).
 
 The complete product will generate a patch and establish behavior preservation
 through independent tests. This first application slice stops at an assessment.

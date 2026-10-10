@@ -2,7 +2,7 @@
 
 Planning date: 2026-09-28. Status: design and source research, not deployed instrumentation or measured results.
 
-This plan supports the Stripe invoice-preview migration in [PROJECT_PLAN.md](PROJECT_PLAN.md). Execution experiments are in [BENCHMARK_PLAN.md](BENCHMARK_PLAN.md); presentation and diagnosis are in [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
+This plan supports the Stripe invoice-preview migration in [PROJECT_PLAN.md](PROJECT_PLAN.md). Execution experiments are in [BENCHMARK_PLAN.md](BENCHMARK_PLAN.md); presentation and diagnosis are in [DEMO_RUNBOOK.md](../../DEMO_RUNBOOK.md).
 
 ## 1. What the system must let us explain
 

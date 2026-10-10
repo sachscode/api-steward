@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import threading
 import time
@@ -231,6 +232,48 @@ async def test_long_prompt_hops_kv_from_prefill_to_decode():
     assert decode_req["kv_transfer_params"]["remote_engine_id"] == "prefill-0"
     assert prefill_req["messages"] == decode_req["messages"]  # same prompt, so the KV matches
     assert body["choices"][0]["message"]["tool_calls"][0]["function"]["name"] == "inspect_integration"
+
+
+async def test_engine_ttft_excludes_the_prefill_queue():
+    engines = [FakeEngine("prefill-0", 8000), FakeEngine("decode-0", 8001)]
+    fleet = FakeFleet(engines)
+    gw = Gateway(settings(fleet, engines, hop_min_tokens=100), httpx.AsyncClient(transport=fleet.transport()))
+    await ready(gw)
+    q = gw.fleet.states["prefill-0"].queue
+    real_slot = q.slot
+
+    @contextlib.asynccontextmanager
+    async def slow_slot(req, tokens=0):
+        await asyncio.sleep(0.2)  # stands in for waiting behind other prefills
+        async with real_slot(req, tokens) as waited:
+            yield waited + 0.2
+
+    q.slot = slow_slot
+    status, body, _ = await gw.complete(payload())
+    await gw.stop()
+    st = body["steward"]
+    assert status == 200 and st["hop"] is not None
+    assert st["ttft_s"] >= 0.2 and st["engine_ttft_s"] < 0.1
+
+
+async def test_queue_timeout_is_counted_as_a_shed():
+    engines = [FakeEngine("decode-0", 8001)]
+    fleet = FakeFleet(engines)
+    gw = Gateway(settings(fleet, engines), httpx.AsyncClient(transport=fleet.transport()))
+    await ready(gw)
+    q = gw.fleet.states["decode-0"].queue
+
+    @contextlib.asynccontextmanager
+    async def expired(req, tokens=0):
+        raise QueueTimeout()
+        yield 0.0
+
+    q.slot = expired
+    status, body, _ = await gw.complete(payload(tenant="private"))
+    await gw.stop()
+    assert status == 503 and body["error"]["code"] == "timeout_queue"
+    shed = gw.metrics.shed.labels("queue", "timeout_queue", "503")._value.get()
+    assert shed == 1
 
 
 async def test_overflow_only_for_503_and_allowed_tenants():

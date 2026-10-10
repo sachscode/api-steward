@@ -2,7 +2,7 @@
 
 Planning date: 2026-09-28. No benchmark results exist yet.
 
-Companion documents: [project scope](PROJECT_PLAN.md), [observability and metric contract](OBSERVABILITY_PLAN.md), [demo runbook](DEMO_RUNBOOK.md).
+Companion documents: [project scope](PROJECT_PLAN.md), [observability and metric contract](OBSERVABILITY_PLAN.md), [demo runbook](../../DEMO_RUNBOOK.md).
 
 ## 1. Claims we intend to test
 

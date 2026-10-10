@@ -86,10 +86,19 @@ def hop_vs_local() -> None:
     ax.set_ylim(0, max(hop) * 1.15)
     title(
         ax,
-        "Moving KV never beat recomputing it",
-        "Qwen3-30B-A3B, TP=4 on A100 40GB; KV moved at ~4.5 GB/s over a 50 Gb RoCE NIC. Median of 3 fresh prompts.",
+        "For fresh prompts, the full split path was slower at every size",
+        "Hop = remote prefill + KV transfer (~4.5 GB/s, RoCE NIC loopback on one host) + first token. Median of 3, no contention.",
     )
     save(fig, "1-hop-vs-recompute")
+
+
+def _started_rates(run: str) -> list[float]:
+    """Jobs/s the load generator actually started per step (it lags its target when its threads are busy)."""
+    import pandas as pd
+
+    jobs = pd.read_json(M / "load" / f"a100-{run}.jsonl", lines=True)
+    g = jobs.groupby("phase").start
+    return list(g.count() / (g.max() - g.min()))
 
 
 def split_vs_colocated() -> None:
@@ -113,14 +122,18 @@ def split_vs_colocated() -> None:
                 fontsize=10,
                 color=INK,
             )
-    ax.set_xticks(list(xs), [f"{r:g} agent jobs/s" for r in rates])
+    started = {r: _started_rates(r) for r in ("sweep3", "colo")}
+    ax.set_xticks(
+        list(xs),
+        [f"target {r:g}/s\nstarted {a:.1f} / {b:.1f}" for r, a, b in zip(rates, started["sweep3"], started["colo"])],
+    )
     ax.set_ylabel("Time to first token, p99 (s)")
     ax.set_ylim(0, 21)
     ax.legend(loc="upper right")
     title(
         ax,
-        "Same 8 GPUs, same load: colocated wins",
-        "Agent steps of 0.5-2k tokens. Within a 2 s p99 target, colocated sustained 20 jobs/s, the split 12. Same ITL.",
+        "Same 8 GPUs and target load: colocated held the tail",
+        "p99 TTFT per model call at the gateway. Started rates (split / colocated): the load generator fell behind at 28.",
     )
     save(fig, "2-split-vs-colocated")
 
@@ -204,7 +217,7 @@ def scale_out_timeline() -> None:
     title(
         ax,
         "Autoscaling reacted in 21 s; the replica arrived 83 s too late",
-        "A 30B MoE replica took ~3.6 min to become ready and served zero requests of the burst.",
+        "A 30B MoE replica took ~3.6 min to become ready and served none of the burst. Times: recorded k8s events.",
     )
     save(fig, "4-scale-out-timeline")
 
@@ -220,7 +233,8 @@ def _trace_by_step(run: str):
     bounds = jobs.groupby("phase").agg(rate=("rate", "first"), first=("start", "min")).sort_index()
     end = float((jobs.start + jobs.duration_s).max())
     edges = list(bounds["first"]) + [end]
-    t = pd.read_json(M / "traces" / "cluster.jsonl", lines=True)
+    # Committed extract of metrics/traces/cluster.jsonl (no prompts, no hosts), so a fresh clone can rebuild charts 5-6.
+    t = pd.read_csv(M / "a100-gateway-traces.csv.gz", low_memory=False)
     t["arrival"] = t.ts - t.e2e_s.fillna(0)
     w = t[(t.arrival >= edges[0]) & (t.arrival <= end) & (t.status == 200)].copy()
     w["load_step"] = pd.cut(w.arrival, edges, labels=list(bounds["rate"]), include_lowest=True)
@@ -234,6 +248,8 @@ def ttft_breakdown() -> None:
         "Prefill on the prefill engine": (ORANGE, lambda w: w.prefill_s.fillna(0)),
         "KV transfer + first decode token": (
             "#f4a582",
+            # These traces predate the gateway fix that moved the engine clock past the prefill
+            # queue, so their engine_ttft_s still includes that wait; subtract it here.
             lambda w: (w.engine_ttft_s - w.queue_wait_prefill_s.fillna(0) - w.prefill_s.fillna(0)).where(
                 w.hop_mode == "nixl", 0
             ),
@@ -265,7 +281,7 @@ def ttft_breakdown() -> None:
         for i, total in enumerate(bottom):
             ax.text(i, total + 0.06, f"{total:.2f} s", ha="center", va="bottom", fontsize=10, color=INK)
         ax.set_title(label, fontsize=11.5, color=INK, loc="left")
-        ax.set_xlabel("Offered load (agent jobs/s)")
+        ax.set_xlabel("Target load (agent jobs/s)")
         ax.grid(axis="x", visible=False)
     axes[0].set_ylabel("Mean time to first token (s)")
     handles = {h.get_label(): h for ax in axes for h in ax.containers}
@@ -282,7 +298,7 @@ def ttft_breakdown() -> None:
     fig.text(
         0.06,
         0.965,
-        "Same 8 GPUs and traffic. Under the split, the extra time at 28 jobs/s is mostly the gateway's own queue.",
+        "Same 8 GPUs and target load. Under the split, the extra time at the 28/s target is mostly the gateway's own queue.",
         fontsize=10.5,
         color=INK2,
     )

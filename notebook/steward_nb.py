@@ -118,7 +118,11 @@ def run_window(jobs: pd.DataFrame, pad_s: float = 30) -> tuple[float, float]:
 
 
 def traces() -> pd.DataFrame:
-    return pd.read_json(METRICS / "traces" / "cluster.jsonl", lines=True)
+    raw = METRICS / "traces" / "cluster.jsonl"
+    if raw.exists():
+        return pd.read_json(raw, lines=True)
+    # Fresh clone: the committed A100 extract (no prompts or hosts, so no per-hop detail).
+    return pd.read_csv(METRICS / "a100-gateway-traces.csv.gz", low_memory=False)
 
 
 # ---- live experiments ------------------------------------------------------------------

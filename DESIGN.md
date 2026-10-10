@@ -7,7 +7,7 @@ Grafana. Every claim below points at a file or a scrape in this repository.
 | Where | What |
 | --- | --- |
 | `app/` | The agent (`agent.py`, `tools.py`) and the load generator (`loadgen.py`). It talks only to the gateway. |
-| `control/` | The gateway: `guard`, `admit`, `place`, `queue`, `hop`, `fleet` (snapshots, warm/ramp), `overflow`, `serve`. 28 tests in `tests/`. |
+| `control/` | The gateway: `guard`, `admit`, `place`, `queue`, `hop`, `fleet` (snapshots, warm/ramp), `overflow`, `serve`. 30 tests in `tests/`. |
 | `cluster/` | Engine image, k3s/HAMi/KEDA/Prometheus/Grafana bring-up, engine manifests (`render_engines.py`), dashboards, probes and the experiment runner. |
 | `notebook/` | Part 5 notebook, executed against the A10 rehearsal (`part5_queues.ipynb`) and the A100 host (`part5_queues_a100.ipynb`). |
 | `plots/`, `metrics/` | Figures from both clusters; per-experiment load files, analyses, gateway scrapes, `/debug/state`, hop dictionary, engine startup logs. |
@@ -19,13 +19,14 @@ exactly one 8x A100 instance available across all regions, so both pools run on 
 on GPUs 0-3, decode on GPUs 4-7. The two-host scripts are in `cluster/` and were rehearsed up to
 the network test. NIXL's KV transfer between the two engines went **through the RoCE NIC in
 loopback** (`metrics/a100-hop-probe.json`: NIC rx bytes ≈ NIXL bytes), so the hop measurements use
-the same 50 Gb/s path a two-host cluster would; what is not exercised is a switch hop between hosts.
+the same 50 Gb/s NIC a two-host cluster would. They are single-host loopback results: a switch hop
+and cross-host RDMA are not exercised.
 
 ---
 
 ## Part 0: the application
 
-**API Steward** is an API-migration agent: given a breaking upgrade (the test case is the public
+**API Steward** is a private, tool-using migration-assessment prototype: given a breaking upgrade (the test case is the public
 Stripe Python SDK v11 → v12 "Basil" change, on synthetic fixtures; the agent never calls Stripe), it
 runs **inspect integration → read migration guide → check proposed mapping → answer**. One user
 turn is four model calls; context grows each step.
@@ -83,7 +84,7 @@ from 114,688 to 98,304: the MoE has fewer layers and KV heads per token despite 
 | Hop backend | **NIXL** (`NixlConnector`, pull mode) over UCX; `kv_lease_duration` 30 s. Not a metadata ledger: real KV bytes, verified below. |
 | Overflow | **Superlinked's OpenAI-compatible API, model `Qwen/Qwen3.5-4B`**, only for 503/529, only tenants that allow it, token bucket 0.5 req/s burst 2, ≤ 2 in flight, output clamped to 256 tokens (`control/overflow.py`). It sends prompts outside the private cluster, so private tenants get the 503 instead. Tested against a mock (`test_overflow_only_for_503_and_allowed_tenants`); **not exercised live** (no API key configured on the cluster). |
 | Two boxes | Gateway = `orch-serve` pod (`control/`). Engine = vLLM pods. admit/place/queue live only in the gateway; waiting/block table/preempt/kernels only in vLLM. |
-| Scaling | KEDA scales a pool's slot-1 engine 0↔1 on that pool's own signal: **prefill on requests waiting for prefill** (uncached prompt tokens), **decode on running + waiting sequences** (hot decode slots). Never "add a replica" of everything: that multiplies KV pressure. |
+| Scaling | KEDA scales a pool's slot-1 engine 0↔1 on that pool's own signal: **prefill on the number of requests waiting in vLLM** (a request count; uncached prompt tokens would be the better signal and is not implemented), **decode on running + waiting sequences** (hot decode slots). A missing series reads as 0. Never "add a replica" of everything: that multiplies KV pressure. |
 
 ## Part 3: guardrails, admission, stay vs leave
 
@@ -193,10 +194,10 @@ Experiments run with `cluster/experiment.sh`, summarised by `cluster/analyze_run
 
 | # | Experiment | Result |
 | --- | --- | --- |
-| E5a | Hop vs local recompute, 0.5k-25k tokens (`a100-hop-probe.json`) | Local wins at every size (1.5-2.3×). NIXL ~4.5 GB/s; the transfer adds ~44 % to prefill time because prefill makes KV at ~2 GB/s (20k tokens/s × 96 KiB). |
+| E5a | Hop vs local recompute, 0.5k-25k fresh tokens, one at a time (`a100-hop-probe.json`) | The full split path (remote prefill + transfer + first token) was slower than local prefill at every size (1.5-2.3×). The transfer + receiver first token alone (0.67 s at 25k) beat recompute (1.25 s), so KV that already exists can be worth moving; not tested. NIXL ~4.5 GB/s; the transfer adds ~44 % to prefill time because prefill makes KV at ~2 GB/s (20k tokens/s × 96 KiB). |
 | E3 | Load sweep, P/D split (`sweep2`, `sweep3`) | At 20 jobs/s, prefill cap 8: TTFT p50 2.0 s, p99 27 s, prefill queue 65, decode queue 277, 120 sequences in vLLM. Cap 32 at the same rate: p50 1.1 s, p99 17 s, prefill queue 12, 172 sequences; the limit moves to decode slots/GPU. (Run-average GPU figures mix different load steps; compare the 20 jobs/s step.) Knee ≈ 12 jobs/s (TTFT p99 1.0 s). |
-| E4 | P/D vs colocated, same 8 GPUs (`sweep3` vs `colo`) | Within a 2 s p99 TTFT target: split 12 jobs/s, colocated ≥ 20 (**$0.37 vs ≤ $0.22 per 1,000 jobs** at $15.92/h). TTFT p99 at 20 jobs/s **1.23 s vs 16.7 s**; same ITL (24.8 vs 24.4 ms). Run-average tokens/s is not comparable: under overload the load generator itself fell behind in the split run. |
-| E8 | KEDA scale-out (`autoscale`) | Scaled 21 s into the burst; replica ready at +239 s; burst ended at +156 s; 0 requests served; scaled down at +381 s. |
+| E4 | P/D vs colocated, same 8 GPUs (`sweep3` vs `colo`) | Per-call gateway TTFT p99 at the 20 jobs/s target **16.7 s split vs 1.23 s colocated**; completed-job median 29.0 s vs 12.1 s; same ITL (24.4 vs 24.8 ms). Highest step within a 2 s p99: split 12/s target (12.5 started), colocated 20/s (19.9 started). Estimated cost at those steps **$0.36 vs $0.22 per 1,000 jobs** ($15.92/h, from arrival rates, not measured per completed migration); the split's capacity is between 12.5 and 18.5/s, so 1.1-1.6× per job. The load generator (256 threads, start stamped when a thread frees up) fell behind under overload: started 18.5 vs 19.9/s at the 20 target and 13.7 vs 22.2/s at 28, so the 28 step is not like-for-like and overload latency is understated. |
+| E8 | KEDA scale-out (`autoscale`) | Scaled 21 s into the burst; replica ready at +239 s; burst ended at +156 s; 0 requests served; scaled down at +381 s. Timeline derived from k8s events recorded after the run (`a100-autoscale-events.txt`; raw events expired); burst and run end reproduce from the load file. |
 | E7 | Noisy tenant (`noisy`) | 541 of the flooder's requests refused at admission; other tenants TTFT p99 **0.38 s**. |
 
 **Point at a file or scrape for each question:**
@@ -214,7 +215,7 @@ Experiments run with `cluster/experiment.sh`, summarised by `cluster/analyze_run
 | Engine scheduler vs my admit/place/queue? | Gateway decides who enters, where, and in what order it is dispatched; vLLM decides batching, chunked prefill, blocks and preemption for what it has been given. No scheduler reimplemented. |
 | What limited concurrency on this GPU for this app? | Not KV (≤ 15 %) and not `max_num_seqs`. First my prefill dispatch cap, then decode slots and decode GPU time (ITL 21 → 33 ms as load rose). |
 | Four production alerts | (1) Client TTFT p99 by class > SLO for 5 min. (2) `orch_shed_total{code="503"}` rate > 1 % of requests (capacity, not tenants). (3) Our queue depth or queue-wait p99 rising while engine GPU busy < 60 % (the control plane is the bottleneck: both A10 and A100 incidents). (4) `vllm:num_preemptions_total` or `nixl_num_kv_expired_reqs_total` increasing (KV over-committed or ghost KV). |
-| If I scale, which pool? | Decode, on running + waiting (decode slots hot). Prefill only on uncached prompt tokens waiting. For bursts shorter than replica startup (~3.6 min here), keep a warm standby instead. |
+| If I scale, which pool? | Decode, on running + waiting (decode slots hot). Prefill should scale on uncached prompt tokens waiting; the implemented trigger counts waiting requests. For bursts shorter than replica startup (~3.6 min here), keep a warm standby instead. |
 | At 10× traffic, what changes, and three wrong knobs? | Change: colocated engines on more hosts behind the same gateway; class priority passed into vLLM; warm standby plus a startup cut (compile cache, fewer graph sizes). Wrong: (1) raise gateway slots/`max_num_seqs` without an ITL SLO (more batching, worse tokens); (2) "KV is the limit, add replicas of everything" (KV was 15 %); (3) split prefill/decode across hosts on a 50 Gb NIC for 2k-token agent prompts (E4, E5a). |
 
 ## Limitations
@@ -227,3 +228,11 @@ Experiments run with `cluster/experiment.sh`, summarised by `cluster/analyze_run
   traffic, worse on unusual text); an exact `/tokenize` check near the limit is not implemented.
 * Priority is not propagated into vLLM.
 * The agent's mapping check is a fixture check, not proof the migrated code works.
+* The load generator stamps a job's start when one of its 256 threads frees up, so under overload
+  it falls behind its target and hides that backlog from latency (E4). An open-loop generator that
+  stamps the scheduled arrival time is the fix before re-measuring capacity.
+* TTFT figures are per model call at the gateway; the app's calls are non-streaming, so a user
+  waits for whole jobs (E4 gives completed-job medians).
+* Before the fix that followed review, the gateway's "engine TTFT" for split requests included the wait for
+  a prefill slot (fixed, with a test). The A100 runs predate the fix; their engines were up > 5 min,
+  so the warm-up ramp it feeds was not active.

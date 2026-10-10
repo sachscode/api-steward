@@ -9,8 +9,9 @@ the KV cache never got above 15 % full. The biggest losses came from three other
 
 * **A single line in my own gateway config** left four of eight A100s about two-thirds idle while
   277 requests waited in a queue.
-* **Prefill/decode disaggregation**, the architecture I had built the cluster around, made tail
-  latency 13× worse than running two ordinary engines on the same GPUs.
+* **Prefill/decode disaggregation**, the architecture I had built the cluster around, made p99
+  time to first token 13× worse than two ordinary engines on the same GPUs at 20 agent jobs per
+  second.
 * **Autoscaling worked exactly as designed**, scaling up 21 seconds into a traffic burst, and
   still served zero requests of it, because a 30B MoE replica takes about 3.6 minutes to start.
 
@@ -23,11 +24,12 @@ measurements and every chart are in the repository:
 
 ## The setup
 
-**The workload.** The agent, which I call API Steward, helps migrate code across a breaking API
-change. My test case is the public Stripe Python SDK upgrade where `Invoice.upcoming` became
-`Invoice.create_preview`. The agent runs on synthetic fixtures and never calls Stripe. Each user
-request runs a loop of four model calls: inspect the code, read the migration guide, check the
-proposed mapping, answer. Every call carries the same 518-token system prompt and tool schema,
+**The workload.** The agent, which I call API Steward, is a private, tool-using prototype that
+assesses a migration across a breaking API change. My test case is the public Stripe Python SDK
+upgrade where `Invoice.upcoming` became `Invoice.create_preview`. The agent runs on synthetic
+fixtures and never calls Stripe. It checks a proposed mapping; it does not generate patches or
+verify that behavior is preserved. Each job runs a loop of four non-streaming model calls:
+inspect the code, read the migration guide, check the proposed mapping, answer. Every call carries the same 518-token system prompt and tool schema,
 and the conversation grows by a few hundred tokens per step. That shape (short prompts, a large
 shared prefix, many dependent calls) is typical of agents, and it matters for every result below.
 
@@ -40,8 +42,8 @@ and a 50 Gb/s RoCE NIC to the outside. I designed for two such hosts, with prefi
 decode on the other, but on the night of the runs exactly one of these instances was available
 across all of Lambda's regions. So prefill ran on GPUs 0-3 and decode on GPUs 4-7 of the same
 machine. As it turned out, the KV transfer between them still went out through the RoCE NIC and
-back in (more on that below), so the transfer numbers reflect the same 50 Gb/s path a two-host
-setup would use.
+back in (more on that below). That exercises the same 50 Gb/s NIC a two-host setup would use, but
+not a switch or a second host, so treat the transfer numbers as single-host loopback results.
 
 **The serving stack.** vLLM 0.30 with tensor parallelism of 4 per engine, NIXL for moving KV cache
 between engines, Kubernetes (k3s) with KEDA for autoscaling, and Prometheus plus Grafana. In front
@@ -86,21 +88,30 @@ has to compute the prompt again. The question is when moving beats recomputing.
 
 **Expectation.** The transfer adds time; it pays off only if it saves more than it costs.
 
-**Measured.** I sent fresh prompts of 500 to 25,000 tokens down both paths and timed the first
-token. Recomputing locally won at every size:
+**Measured.** I sent fresh prompts of 500 to 25,000 tokens, one at a time, down both paths and
+timed the first token. The hop path is the whole split: prefill on the prefill engine, the NIXL
+transfer, then the decode engine's first token. The local path is the decode engine computing the
+prompt itself. For fresh prompts under no contention, the full split path was slower at every
+size:
 
-![Moving KV never beat recomputing it](../plots/article-1-hop-vs-recompute.png)
+![For fresh prompts, the full split path was slower at every size](../plots/article-1-hop-vs-recompute.png)
 
-At 25,000 tokens the hop path took 1.9 s and the local path 1.25 s. The hop path does all the
-prefill work anyway, on the other engine, and then adds a 2.5 GB transfer that takes about half a
-second.
+At 25,000 tokens the hop path took 1.91 s and the local path 1.25 s. The hop path does all the
+prefill work anyway, on the other engine, and then adds a 2.5 GB transfer.
+
+That is a narrower result than "moving KV never pays". The transfer plus the decode engine's first
+token, on their own, took 0.67 s at 25,000 tokens, about half the cost of recomputing. So when the
+KV already exists, because an earlier turn produced it or because the prefill ran on GPUs that
+would otherwise sit idle, moving it can win. This probe did not test either case.
 
 A useful rule of thumb falls out of this. This engine prefills about 20,000 tokens per second,
 and each token produces 96 KiB of KV, so prefill *produces* KV at roughly 2 GB/s. The link moved
-it at about 4.5 GB/s. So the transfer always added about 2 ÷ 4.5 ≈ **44 %** on top of the prefill
+it at about 4.5 GB/s. So the transfer added about 2 ÷ 4.5 ≈ **44 %** on top of the prefill
 time. Over NVLink, at 300 GB/s, the same ratio would be under 1 %. Before building a
-disaggregated cluster, compute *KV bytes produced per second of prefill ÷ link bandwidth*. If that
-number is not small, disaggregation cannot win on latency per request.
+disaggregated cluster, compute *KV bytes produced per second of prefill ÷ link bandwidth*. That
+ratio is the latency tax a fresh prompt pays for the split. The split has to earn it back
+somewhere else: prefill capacity that would otherwise be idle, KV reuse, or keeping long prefills
+away from decoding.
 
 One surprise: the transfer between two engines on the same machine went out through the NIC and
 came back in. Each engine was pinned to its own four GPUs, so neither process could address the
@@ -124,15 +135,24 @@ from outside instead of computing. The 2 % gap is the transfer moving whole 16-t
 **Expectation.** Disaggregation is supposed to protect token generation from long prefills that
 would otherwise interrupt it. Its cost is the transfer and an extra network round trip.
 
-**Measured.** I ran the same agent traffic on the same eight GPUs in two layouts: a
+**Measured.** I ran the same agent traffic profile on the same eight GPUs in two layouts: a
 prefill/decode split (four GPUs each), and two ordinary engines that each do both.
 
-![Same 8 GPUs, same load: colocated wins](../plots/article-2-split-vs-colocated.png)
+![Same 8 GPUs and target load: colocated held the tail](../plots/article-2-split-vs-colocated.png)
 
-At 20 agent jobs per second, p99 time to first token was **16.7 s split and 1.2 s colocated**.
-With a target of 2 seconds for p99 time to first token, the split sustained 12 agent jobs per
-second and the colocated engines at least 20, on the same hardware. And the one thing the split
-should have improved, inter-token latency, was the same in both: 24.4 ms against 24.8 ms.
+At a target of 20 agent jobs per second, p99 time to first token for individual model calls,
+measured at the gateway, was **16.7 s split and 1.2 s colocated**. Whole agent jobs (four calls)
+that completed took a median of 29.0 s split and 12.1 s colocated. Against a 2-second p99 target, the split met
+it only at the 12 jobs/s step, and the colocated engines also met it at 20. And the one thing the
+split should have improved, inter-token latency, was the same in both: 24.4 ms against 24.8 ms.
+
+One caveat on the load. My load generator has a fixed pool of 256 worker threads and records a
+job's start time only when a thread picks it up. When jobs run long, the pool fills, jobs back up
+inside the generator, and that wait never appears in the latency numbers. At the 20 jobs/s target
+the split actually started 18.5 jobs/s and the colocated engines 19.9. At the 28 target it was
+13.7 against 22.2, so that step is not a like-for-like comparison, and both layouts' overload
+latency is understated. The 12 and 20 steps hold. Exact capacity at the 2-second target needs a
+rerun with a generator that cannot fall behind.
 
 The reasons are specific to this workload. Agent prompts here are 500 to 2,000 tokens, so
 prefill is quick and rarely stalls decoding. Under the split, the prefill GPUs sat at about 63 %
@@ -140,7 +160,7 @@ busy while the decode GPUs saturated. With two colocated engines, all eight GPUs
 
 Breaking time to first token into its parts shows where the split loses. At light load the
 difference is the prefill round trip and the transfer. As load rises, the split's time in the
-gateway's own queue grows: at 28 jobs per second it is about half of a 2.4-second average, while
+gateway's own queue grows: at the 28 jobs/s target it is about half of a 2.4-second average, while
 the colocated engines average 0.9 seconds and barely queue at all:
 
 ![Where time to first token goes as load rises](../plots/article-5-ttft-breakdown.png)
@@ -185,7 +205,9 @@ waiting for a prefill slot (step 2) is already holding decode capacity.
   *client* saw, which includes time spent in the gateway's own queue. With capacity throttled, the
   queue grew, latency rose, and the ramp held: queue wait reached 12 seconds while the engine
   answered in 40 ms. Judging the engine on its own latency fixed it, and cut p99 time to first
-  token from 17.3 s to 4.4 s.
+  token from 17.3 s to 4.4 s. (A later review found a gap: for split requests, my "engine" clock
+  still included the wait for a prefill slot. It is fixed now. The A100 runs predate the fix, but
+  their engines had been up for more than five minutes, so the ramp was not in play.)
 * **Counting requests instead of tokens.** The gateway capped each engine at 16 requests. Forty
   long prompts arriving in one second all fitted under that cap and overfilled the KV cache, so
   vLLM evicted five of them. Reserving each request's tokens against the engine's actual KV
@@ -225,7 +247,9 @@ decode engine.
 
 ![Autoscaling reacted in 21 s; the replica arrived 83 s too late](../plots/article-4-scale-out-timeline.png)
 
-KEDA saw the pressure and scaled up 21 seconds into the burst. The new replica then spent about
+KEDA saw the pressure and scaled up 21 seconds into the burst. (These times come from the
+Kubernetes events I recorded right after the run; the derived timeline is in the repository, but
+the raw events expired.) The new replica then spent about
 three and a half minutes loading 57 GB of weights, compiling kernels and capturing CUDA graphs. It
 became ready 83 seconds after the burst had ended, sat idle through KEDA's three-minute cooldown,
 and was removed having served nothing. Meanwhile, the one engine absorbed the burst with a median
@@ -273,10 +297,13 @@ capacity at the SLO, not raw tokens per second.
 
 | | Prefill/decode split | Two colocated engines |
 | --- | --- | --- |
-| Jobs per second within a 2 s p99 TTFT | 12 | at least 20 |
-| Cost per 1,000 agent jobs at that rate ($15.92/h host) | $0.37 | $0.22 or less |
+| Highest tested step within a 2 s p99 TTFT | 12/s target (12.5 started) | 20/s target (19.9 started) |
+| Estimated cost per 1,000 agent jobs at that step ($15.92/h host) | $0.36 | $0.22 |
 
-So on this workload the split cost about 1.7× as much per job. The other waste was idle capacity:
+This is an estimate from arrival rates at coarse load steps, not a measured cost per completed
+migration. The split missed the target at 18.5 jobs/s started, so its real capacity lies somewhere
+between 12.5 and 18.5, and the split cost between about 1.1× and 1.6× as much per job. Finer steps
+would pin that down. The other waste was idle capacity:
 the late replica held four A100s for six minutes and served nothing, about 0.4 GPU-hours. A
 cost loop would read cost per job at the SLO and idle GPU time, and its knobs are the slow,
 expensive ones: topology, replica count, warm standby and the scale-in cooldown. It reacts in
@@ -287,8 +314,8 @@ compete with them.
 
 1. **Size on paper first.** The arithmetic predicted KV capacity within 2 %. It is cheaper than a
    GPU hour.
-2. **Compute KV production rate ÷ link bandwidth before disaggregating.** At 44 %, moving KV
-   cannot beat recomputing it.
+2. **Compute KV production rate ÷ link bandwidth before disaggregating.** Here it was 44 %: the
+   latency every fresh prompt pays for the split, which the split must earn back elsewhere.
 3. **Match the architecture to the prompt length.** For short-prompt agent traffic, colocated
    engines beat a prefill/decode split on capacity and tail latency.
 4. **Treat the control plane as a component that can be the bottleneck.** Alert when gateway
@@ -300,10 +327,14 @@ compete with them.
 
 ## Limitations
 
-This is one model, one workload shape and one host. The KV transfer used a real RoCE NIC, but
-not a switch between two machines. I did not run the long-prompt case where disaggregation should
-help, and the overflow path to an external provider was tested only against a mock. The numbers
-should be read as one careful case study, not a benchmark.
+This is one model, one workload shape and one host. The KV transfer used a real RoCE NIC in
+loopback, not a switch between two machines. I did not run the long-prompt case where
+disaggregation should help, or a case where KV already existed. The load generator fell behind
+its target under overload, so the overload steps understate latency. Time to first token is
+measured per model call at the gateway, not per agent job. The autoscaling times come from events
+recorded by hand after the run. The agent assesses a migration plan; it does not write or verify
+patches. The overflow path to an external provider was tested only against a mock. Read the
+numbers as one careful case study, not a benchmark.
 
 ## Next: automated performance tuning
 

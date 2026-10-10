@@ -137,13 +137,15 @@ class Gateway:
             # Decode holds the whole sequence's KV: prompt plus output budget.
             async with decode_state.queue.slot(req, req.cost_tokens) as waited_d:
                 tr["queue_wait_decode_s"] = round(waited_d, 4)
-                dispatched = time.monotonic()  # engine time starts here; our queue wait is excluded
+                # Engine time starts when the last of our queues lets the request go.
+                dispatched = time.monotonic()
                 kv_params = None
                 if plan.hop_mode == "nixl" and plan.prefill is not None:
                     prefill_state = self.fleet.states[plan.prefill.engine]
                     # Prefill holds the prompt's KV until decode pulls it.
                     async with prefill_state.queue.slot(req, req.prompt_tokens) as waited_p:
                         tr["queue_wait_prefill_s"] = round(waited_p, 4)
+                        dispatched = time.monotonic()  # the prefill queue is ours too
                         plan.stage = "prefill"
                         kv_params, usage, secs = await prefill_state.engine.prefill(req.body)
                     self.metrics.prefill.labels(plan.prefill.engine).observe(secs)
@@ -172,7 +174,7 @@ class Gateway:
                         first = False
                         now = time.monotonic()
                         ttft = now - req.arrival  # client view: our queue + prefill + hop + first token
-                        engine_ttft = now - dispatched  # engine view: prefill + hop + first token
+                        engine_ttft = now - dispatched  # engine view: prefill + hop + first token, no queue
                         tr["ttft_s"], tr["engine_ttft_s"] = round(ttft, 4), round(engine_ttft, 4)
                         self.metrics.ttft.labels(req.klass, plan.hop_mode).observe(ttft)
                         self.metrics.engine_ttft.labels(plan.decode.engine).observe(engine_ttft)
@@ -191,7 +193,9 @@ class Gateway:
             self.metrics.e2e.labels(req.klass, plan.hop_mode).observe(e2e)
             self.metrics.completed.labels(req.klass, plan.hop_mode).inc()
         except QueueTimeout:
-            raise GatewayRefusal(Shed(503, "timeout_queue", "queue", 2.0, "deadline passed while queued")) from None
+            shed = Shed(503, "timeout_queue", "queue", 2.0, "deadline passed while queued")
+            self.metrics.shed.labels(shed.stage, shed.reason, str(shed.status)).inc()
+            raise GatewayRefusal(shed) from None
         except EngineError as exc:
             self.metrics.errors.labels(plan.stage, str(exc.status)).inc()
             status = exc.status if exc.status in (400, 429, 500, 503, 529) else 502

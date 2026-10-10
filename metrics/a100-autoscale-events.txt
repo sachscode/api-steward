@@ -1,0 +1,28 @@
+# Autoscale run (a100-autoscale): decode-slot1 timeline
+#
+# Seconds relative to the first job of the 20 jobs/s burst (phase 1 in
+# metrics/load/a100-autoscale.jsonl). Derived right after the run from
+# `kubectl get events -o json` (reasons for pods/replica sets named vllm-decode-1),
+# the KEDA trigger query in Prometheus, and the gateway's /debug/state polling.
+# The raw events JSON was not kept (k8s events expire after ~1 h); this is the
+# derived table as printed at the time. Lines with negative times belong to the
+# previous run (k8s aggregates repeated events, so "first" can predate this run).
+#
+# Cross-check from files in this repo: burst end (+156 s) and run end (+202 s)
+# are reproducible from metrics/load/a100-autoscale.jsonl.
+
+Started   first -662 s   last -662 s   x1   Container started
+Unhealthy first -653 s   last -473 s   x19  Startup probe failed: Get "http://<pod-ip>:8003/health": connection refused
+Killing   first -69 s    last -69 s    x1   Stopping container vllm
+SuccessfulDelete first -69 s    last -69 s    x1   Deleted pod: vllm-decode-1-fb8958f84-4slqt
+Unhealthy first -68 s    last -68 s    x1   Readiness probe failed
+ScalingReplicaSet first -666 s   last +21 s    x2   Scaled up replica set vllm-decode-1-fb8958f84 from 0 to 1
+Started   first +23 s    last +23 s    x1   Container started
+Unhealthy first +31 s    last +211 s   x19  Startup probe failed: Get "http://<pod-ip>:8003/health": connection refused
+Killing   first +381 s   last +381 s   x1   Stopping container vllm
+Unhealthy first +381 s   last +381 s   x1   Readiness probe failed
+SuccessfulDelete first +381 s   last +381 s   x1   Deleted pod: vllm-decode-1-fb8958f84-vxqtt
+ScalingReplicaSet first -69 s    last +381 s   x2   Scaled down replica set vllm-decode-1-fb8958f84 from 1 to 0
+KEDA input first >= 48 : +29 s   last >= 48: +199 s
+gateway first saw decode-1 up: +239 s
+burst ends: +156 s   run ends: +202 s
