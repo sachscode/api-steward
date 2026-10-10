@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" viewBox="0 0 940 720" height="720"><title id="d4-title">The control plane as feedback loops</title><desc id="d4-desc">Top: the warm-up ramp before and after the fix. Before, the ramp gate read client time to first token, which includes the gateway's own queue, forming a reinforcing loop that held a healthy engine at 25 percent of its slots. After, it reads the engine's own time to first token, and the ramp opens. Bottom: every control loop in the gateway and cluster, with its signal, knob, reaction time, and what went wrong when it was tuned by hand.</desc>
+<defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#52514e"></path></marker></defs>
+<g font-family="sans-serif" fill="#192b3b">
+<text x="20" y="28" font-size="16" font-weight="600">The control plane is a set of feedback loops</text>
+<text x="20" y="48" font-size="12" fill="#52514e">Each loop reads a signal and turns a knob. In Part 1 every knob was tuned by hand, after a symptom showed up.</text>
+<!-- before panel -->
+<rect x="20" y="66" width="440" height="300" rx="8" fill="#fff6f1" stroke="#eb6834"></rect>
+<text x="36" y="90" font-size="13.5" font-weight="600" fill="#b5441a">Before: the ramp gate read client TTFT</text>
+<rect x="150" y="104" width="180" height="40" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect><text x="240" y="129" text-anchor="middle" font-size="12">Engine slots held at 25 %</text>
+<rect x="300" y="182" width="150" height="40" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect><text x="375" y="207" text-anchor="middle" font-size="12">Gateway queue grows</text>
+<rect x="150" y="260" width="180" height="40" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect><text x="240" y="279" text-anchor="middle" font-size="12">Client TTFT rises</text><text x="240" y="294" text-anchor="middle" font-size="10.5" fill="#52514e">(it includes the queue)</text>
+<rect x="30" y="182" width="150" height="40" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect><text x="105" y="200" text-anchor="middle" font-size="12">p99 above SLO:</text><text x="105" y="215" text-anchor="middle" font-size="12">ramp holds</text>
+<path d="M 330 130 C 370 140, 385 160, 380 180" stroke="#52514e" stroke-width="1.5" fill="none" marker-end="url(#m)"></path>
+<path d="M 380 222 C 385 245, 360 270, 332 278" stroke="#52514e" stroke-width="1.5" fill="none" marker-end="url(#m)"></path>
+<path d="M 150 282 C 110 280, 95 250, 102 224" stroke="#52514e" stroke-width="1.5" fill="none" marker-end="url(#m)"></path>
+<path d="M 102 182 C 100 155, 115 130, 148 126" stroke="#52514e" stroke-width="1.5" fill="none" marker-end="url(#m)"></path>
+<text x="240" y="205" text-anchor="middle" font-size="22" font-weight="700" fill="#b5441a">R</text>
+<text x="36" y="330" font-size="12">Self-reinforcing: decode queue p50 12 s while</text>
+<text x="36" y="347" font-size="12">vLLM answered in 40 ms with an empty KV cache.</text>
+<!-- after panel -->
+<rect x="480" y="66" width="440" height="300" rx="8" fill="#f2f8f6" stroke="#167567"></rect>
+<text x="496" y="90" font-size="13.5" font-weight="600" fill="#167567">After: the ramp gate reads engine TTFT</text>
+<rect x="610" y="104" width="180" height="40" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect><text x="700" y="129" text-anchor="middle" font-size="12">Slots open 25 / 50 / 100 %</text>
+<rect x="760" y="182" width="150" height="40" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect><text x="835" y="200" text-anchor="middle" font-size="12">Engine TTFT:</text><text x="835" y="215" text-anchor="middle" font-size="12">dispatch to first token</text>
+<rect x="610" y="260" width="180" height="40" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect><text x="700" y="279" text-anchor="middle" font-size="12">Unaffected by our queue</text><text x="700" y="294" text-anchor="middle" font-size="10.5" fill="#52514e">(measures only the engine)</text>
+<rect x="490" y="182" width="150" height="40" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect><text x="565" y="200" text-anchor="middle" font-size="12">Within SLO:</text><text x="565" y="215" text-anchor="middle" font-size="12">next step opens</text>
+<path d="M 790 130 C 830 140, 845 160, 840 180" stroke="#52514e" stroke-width="1.5" fill="none" marker-end="url(#m)"></path>
+<path d="M 840 222 C 845 245, 820 270, 792 278" stroke="#52514e" stroke-width="1.5" fill="none" marker-end="url(#m)"></path>
+<path d="M 610 282 C 570 280, 555 250, 562 224" stroke="#52514e" stroke-width="1.5" fill="none" marker-end="url(#m)"></path>
+<path d="M 562 182 C 560 155, 575 130, 608 126" stroke="#52514e" stroke-width="1.5" fill="none" marker-end="url(#m)"></path>
+<text x="700" y="205" text-anchor="middle" font-size="22" font-weight="700" fill="#167567">B</text>
+<text x="496" y="330" font-size="12">Interactive TTFT p99 17.3 s to 4.4 s (A10).</text>
+<text x="496" y="347" font-size="12">Engines up for more than 5 minutes skip the ramp.</text>
+<!-- loops table -->
+<text x="20" y="400" font-size="13.5" font-weight="600">Every loop in the system, and what hand tuning missed</text>
+<rect x="20" y="412" width="900" height="30" fill="#f0efec"></rect>
+<g font-size="11.5" font-weight="600" fill="#52514e"><text x="30" y="432">Loop</text><text x="170" y="432">Signal it reads</text><text x="380" y="432">Knob it turns</text><text x="560" y="432">Reacts in</text><text x="650" y="432">What went wrong first</text></g>
+<g font-size="11.5">
+<text x="30" y="464" font-weight="600">Admission</text><text x="170" y="464">Tenant tokens, in-flight count</text><text x="380" y="464">Refuse with 429</text><text x="560" y="464">Per request</text><text x="650" y="464">Billed the output budget: 78 % refused</text>
+<text x="30" y="494" font-weight="600">KV budget</text><text x="170" y="494">KV tokens reserved vs capacity</text><text x="380" y="494">Hold in our queue</text><text x="560" y="494">Per request</text><text x="650" y="494">Counted requests: 5 preemptions</text>
+<text x="30" y="524" font-weight="600">Prefill cap</text><text x="170" y="524">Prefills in flight</text><text x="380" y="524">Dispatch limit (8, then 32)</text><text x="560" y="524">Per request</text><text x="650" y="524">Set on an A10: prefill GPUs 32 % busy</text>
+<text x="30" y="554" font-weight="600">Warm-up ramp</text><text x="170" y="554">Engine TTFT p99</text><text x="380" y="554">Share of slots open</text><text x="560" y="554">15 s steps</text><text x="650" y="554">Read client TTFT: the loop above</text>
+<text x="30" y="584" font-weight="600">Hop decision</text><text x="170" y="584">Uncached prompt tokens</text><text x="380" y="584">Move KV or recompute</text><text x="560" y="584">Per request</text><text x="650" y="584">At 4.5 GB/s the hop never won</text>
+<text x="30" y="614" font-weight="600">Autoscaling</text><text x="170" y="614">Decode running + waiting</text><text x="380" y="614">Add a replica (KEDA)</text><text x="560" y="614">~3.6 min</text><text x="650" y="614">Replica arrived 83 s after the burst</text>
+<text x="30" y="644" font-weight="600">Priority</text><text x="170" y="644">Request class</text><text x="380" y="644">Order in our queue</text><text x="560" y="644">Per request</text><text x="650" y="644">Lost inside vLLM when we did not queue</text>
+</g>
+<path d="M 20 476 H 920 M 20 506 H 920 M 20 536 H 920 M 20 566 H 920 M 20 596 H 920 M 20 626 H 920 M 20 656 H 920" stroke="#e6e5e1" stroke-width="1"></path>
+<text x="20" y="690" font-size="12.5" font-weight="600" fill="#167567">Part 2: close these loops automatically, using signals the system already exports.</text>
+<text x="20" y="708" font-size="11" fill="#52514e">R = reinforcing loop, B = balancing loop. Numbers from the A10 rehearsal and the 8x A100 runs in metrics/.</text>
+</g>
+</svg>

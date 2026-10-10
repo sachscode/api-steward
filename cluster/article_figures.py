@@ -209,8 +209,125 @@ def scale_out_timeline() -> None:
     save(fig, "4-scale-out-timeline")
 
 
+def _trace_by_step(run: str):
+    """Served requests from the gateway trace, tagged with the load step they arrived in."""
+    import pandas as pd
+
+    meta = json.loads((M / f"a100-{run}-meta.json").read_text())
+    phases = [tuple(map(float, p.split(":"))) for p in meta["phases"].split(",")]
+    t = pd.read_json(M / "traces" / "cluster.jsonl", lines=True)
+    t["arrival"] = t.ts - t.e2e_s.fillna(0)
+    w = t[(t.arrival >= meta["start"]) & (t.arrival <= meta["end"]) & (t.status == 200)].copy()
+    edges = [meta["start"]]
+    for duration, _ in phases:
+        edges.append(edges[-1] + duration)
+    w["load_step"] = pd.cut(w.arrival, edges, labels=[r for _, r in phases])
+    return w
+
+
+def ttft_breakdown() -> None:
+    """Mean TTFT per load step, split into where the time went."""
+    parts = {
+        "Waiting in the gateway queue": ("#52514e", lambda w: w.queue_wait_decode_s + w.queue_wait_prefill_s.fillna(0)),
+        "Prefill on the prefill engine": (ORANGE, lambda w: w.prefill_s.fillna(0)),
+        "KV transfer + first decode token": (
+            "#f4a582",
+            lambda w: (w.engine_ttft_s - w.queue_wait_prefill_s.fillna(0) - w.prefill_s.fillna(0)).where(
+                w.hop_mode == "nixl", 0
+            ),
+        ),
+        "Engine computes prompt + first token": (BLUE, lambda w: w.engine_ttft_s.where(w.hop_mode != "nixl", 0)),
+    }
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.6), sharey=True)
+    for ax, (run, label) in zip(
+        axes, (("sweep3", "Prefill/decode split"), ("colo", "Two colocated engines")), strict=True
+    ):
+        w = _trace_by_step(run)
+        steps = list(w.load_step.cat.categories)
+        bottom = [0.0] * len(steps)
+        for name, (color, fn) in parts.items():
+            vals = [float(fn(w[w.load_step == s]).clip(lower=0).mean()) for s in steps]
+            if not any(v > 0.005 for v in vals):
+                continue
+            ax.bar(
+                [f"{s:g}/s" for s in steps],
+                vals,
+                0.6,
+                bottom=bottom,
+                color=color,
+                edgecolor=SURFACE,
+                linewidth=2,
+                label=name,
+            )
+            bottom = [b + v for b, v in zip(bottom, vals, strict=True)]
+        for i, total in enumerate(bottom):
+            ax.text(i, total + 0.06, f"{total:.2f} s", ha="center", va="bottom", fontsize=10, color=INK)
+        ax.set_title(label, fontsize=11.5, color=INK, loc="left")
+        ax.set_xlabel("Offered load (agent jobs/s)")
+        ax.grid(axis="x", visible=False)
+    axes[0].set_ylabel("Mean time to first token (s)")
+    handles = {h.get_label(): h for ax in axes for h in ax.containers}
+    fig.legend(list(handles.values()), list(handles.keys()), loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.16))
+    fig.suptitle(
+        "Where time to first token goes as load rises",
+        x=0.06,
+        ha="left",
+        fontsize=14,
+        fontweight="bold",
+        color=INK,
+        y=1.04,
+    )
+    fig.text(
+        0.06,
+        0.965,
+        "Same 8 GPUs and traffic. Under the split, the extra time at 28 jobs/s is mostly the gateway's own queue.",
+        fontsize=10.5,
+        color=INK2,
+    )
+    save(fig, "5-ttft-breakdown")
+
+
+def ttft_cdf() -> None:
+    """TTFT distribution by class at the top load step: the batch aging ceiling."""
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.4), sharey=True)
+    for ax, (run, label) in zip(
+        axes, (("sweep3", "Prefill/decode split"), ("colo", "Two colocated engines")), strict=True
+    ):
+        w = _trace_by_step(run)
+        top = w[w.load_step == w.load_step.cat.categories[-1]]
+        for klass, color in (("interactive", BLUE), ("batch", ORANGE)):
+            v = sorted(top[top.klass == klass].ttft_s.dropna())
+            ax.plot(v, [(i + 1) / len(v) for i in range(len(v))], color=color, lw=2, label=klass.capitalize())
+        ax.axvline(15, color=INK2, lw=1, ls="--")
+        ax.text(15.3, 0.08, "batch promoted\nafter 15 s", fontsize=9.5, color=INK2)
+        ax.set_xlim(0, 20)
+        ax.set_title(label, fontsize=11.5, color=INK, loc="left")
+        ax.set_xlabel("Time to first token (s)")
+    axes[0].set_ylabel("Share of requests")
+    axes[0].legend(loc="lower right", bbox_to_anchor=(1.0, 0.22))
+    fig.suptitle(
+        "Priority under overload: interactive is protected, batch waits",
+        x=0.06,
+        ha="left",
+        fontsize=14,
+        fontweight="bold",
+        color=INK,
+        y=1.04,
+    )
+    fig.text(
+        0.06,
+        0.965,
+        "28 agent jobs/s. Batch requests that queue are held until their 15 s aging promotion.",
+        fontsize=10.5,
+        color=INK2,
+    )
+    save(fig, "6-ttft-cdf-by-class")
+
+
 if __name__ == "__main__":
     hop_vs_local()
     split_vs_colocated()
     bottleneck_shift()
     scale_out_timeline()
+    ttft_breakdown()
+    ttft_cdf()

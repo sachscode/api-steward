@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" viewBox="0 0 940 660" height="660"><title id="d3-title">One agent step through the KV hop</title><desc id="d3-desc">Sequence of one agent step under the prefill/decode split, with median timings for a 1,740-token prompt. The gateway reserves a decode slot first, then waits for a prefill slot, the prefill engine computes the prompt with max_tokens=1 and returns a KV handle, the decode engine pulls the KV over NIXL and streams the first token. A request waiting for a prefill slot already holds a decode slot.</desc>
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#192b3b"></path></marker>
+<marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#eb6834"></path></marker>
+</defs>
+<g font-family="sans-serif" fill="#192b3b">
+<text x="20" y="28" font-size="16" font-weight="600">One agent step through the KV hop</text>
+<text x="20" y="48" font-size="12" fill="#52514e">Prefill/decode split on one 8x A100 host. Median timings for a 1,740-token prompt (hop_probe.py).</text>
+<!-- lifeline heads -->
+<rect x="20" y="66" width="130" height="44" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect><text x="85" y="93" text-anchor="middle" font-size="13" font-weight="500">Agent</text>
+<rect x="200" y="66" width="170" height="44" rx="5" fill="#ffffff" stroke="#192b3b"></rect><text x="285" y="86" text-anchor="middle" font-size="13" font-weight="500">Gateway</text><text x="285" y="102" text-anchor="middle" font-size="11">our queue + slots</text>
+<rect x="420" y="66" width="170" height="44" rx="5" fill="#fde3d6" stroke="#eb6834"></rect><text x="505" y="86" text-anchor="middle" font-size="13" font-weight="500">Prefill engine</text><text x="505" y="102" text-anchor="middle" font-size="11">GPUs 0-3, TP=4</text>
+<rect x="640" y="66" width="170" height="44" rx="5" fill="#dce9f8" stroke="#2a78d6"></rect><text x="725" y="86" text-anchor="middle" font-size="13" font-weight="500">Decode engine</text><text x="725" y="102" text-anchor="middle" font-size="11">GPUs 4-7, TP=4</text>
+<path d="M 85 110 V 532 M 285 110 V 560 M 505 110 V 560 M 725 110 V 560" stroke="#bcc8d2" stroke-width="1.2" stroke-dasharray="4 4" fill="none"></path>
+<!-- decode slot held -->
+<rect x="279" y="176" width="12" height="350" fill="#2a78d6" opacity="0.85"></rect>
+<text x="268" y="430" text-anchor="end" font-size="11" fill="#2a78d6" font-weight="600">decode slot</text><text x="268" y="444" text-anchor="end" font-size="11" fill="#2a78d6" font-weight="600">held</text>
+<!-- prefill slot held -->
+<rect x="293" y="244" width="8" height="74" fill="#eb6834" opacity="0.85"></rect>
+<!-- engine activity -->
+<rect x="499" y="250" width="12" height="60" fill="#eb6834"></rect>
+<rect x="719" y="372" width="12" height="96" fill="#2a78d6"></rect>
+<!-- messages -->
+<path d="M 85 134 H 279" stroke="#192b3b" stroke-width="1.5" marker-end="url(#a)" fill="none"></path><text x="96" y="128" font-size="12">agent step (system + tools + conversation)</text>
+<text x="300" y="152" font-size="12" fill="#52514e">guard, admit, place</text>
+<circle cx="312" cy="182" r="9" fill="#192b3b"></circle><text x="312" y="186" text-anchor="middle" font-size="11" fill="#ffffff">1</text><text x="328" y="186" font-size="12">reserve a decode slot (and its KV tokens)</text>
+<circle cx="312" cy="216" r="9" fill="#192b3b"></circle><text x="312" y="220" text-anchor="middle" font-size="11" fill="#ffffff">2</text><text x="328" y="220" font-size="12">wait for a prefill slot (cap 8, later 32)</text>
+<path d="M 301 256 H 499" stroke="#192b3b" stroke-width="1.5" marker-end="url(#a)" fill="none"></path>
+<circle cx="322" cy="250" r="9" fill="#192b3b"></circle><text x="322" y="254" text-anchor="middle" font-size="11" fill="#ffffff">3</text><text x="338" y="250" font-size="12">prefill, max_tokens=1</text>
+<text x="519" y="276" font-size="12">computes the prompt, builds KV</text><text x="519" y="292" font-size="12" font-weight="600">~102 ms</text>
+<path d="M 499 312 H 301" stroke="#192b3b" stroke-width="1.5" marker-end="url(#a)" fill="none"></path>
+<circle cx="478" cy="306" r="9" fill="#192b3b"></circle><text x="478" y="310" text-anchor="middle" font-size="11" fill="#ffffff">4</text><text x="318" y="330" font-size="12">kv_transfer_params: 109 block ids, host, port</text>
+<path d="M 291 378 H 719" stroke="#192b3b" stroke-width="1.5" marker-end="url(#a)" fill="none"></path>
+<circle cx="322" cy="372" r="9" fill="#192b3b"></circle><text x="322" y="376" text-anchor="middle" font-size="11" fill="#ffffff">5</text><text x="338" y="372" font-size="12">same request + kv_transfer_params (streamed)</text>
+<path d="M 719 412 H 511" stroke="#eb6834" stroke-width="2.5" marker-end="url(#ao)" fill="none" stroke-dasharray="7 4"></path>
+<circle cx="698" cy="406" r="9" fill="#eb6834"></circle><text x="698" y="410" text-anchor="middle" font-size="11" fill="#ffffff">6</text><text x="528" y="432" font-size="12" fill="#b5441a" font-weight="600">NIXL pull: 171 MB</text><text x="528" y="448" font-size="12" fill="#b5441a" font-weight="600">41 ms per TP rank</text>
+<path d="M 719 466 H 291" stroke="#192b3b" stroke-width="1.5" marker-end="url(#a)" fill="none"></path>
+<circle cx="698" cy="460" r="9" fill="#192b3b"></circle><text x="698" y="464" text-anchor="middle" font-size="11" fill="#ffffff">7</text><text x="430" y="484" font-size="12">first token (~92 ms incl. pull)</text>
+<path d="M 279 500 H 85" stroke="#192b3b" stroke-width="1.5" marker-end="url(#a)" fill="none"></path><text x="96" y="494" font-size="12">tokens stream back</text>
+<text x="96" y="546" font-size="12" font-weight="600">First token: 196 ms</text><text x="96" y="562" font-size="12">(decode computing it locally: 118 ms)</text>
+<!-- callouts -->
+<rect x="20" y="576" width="430" height="74" rx="6" fill="#f0efec" stroke="#52514e"></rect>
+<text x="32" y="597" font-size="12.5" font-weight="600">Why reserve the decode slot first (1 before 2)</text>
+<text x="32" y="615" font-size="12">Prefilled KV never waits for a decode slot. If it did, it would sit</text>
+<text x="32" y="631" font-size="12">on the prefill GPUs as ghost KV until NIXL's 30 s lease expired.</text>
+<rect x="470" y="576" width="450" height="74" rx="6" fill="#fff6f1" stroke="#eb6834"></rect>
+<text x="482" y="597" font-size="12.5" font-weight="600" fill="#b5441a">The cost: requests waiting at 2 hold a decode slot</text>
+<text x="482" y="615" font-size="12">With the prefill cap at 8 (20 jobs/s), all 192 decode slots were</text>
+<text x="482" y="631" font-size="12">taken but only 120 sequences were decoding in vLLM.</text>
+</g>
+</svg>

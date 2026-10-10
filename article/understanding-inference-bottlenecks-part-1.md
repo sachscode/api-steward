@@ -107,6 +107,12 @@ came back in. Each engine was pinned to its own four GPUs, so neither process co
 other's memory directly. The NIC's receive counter matched NIXL's byte count to within protocol
 overhead.
 
+![One 8x A100 host as we ran it: two data paths](../plots/article-d1-host-data-paths.png)
+
+Inside each engine, tensor-parallel traffic stays on the NVSwitch fabric, which measured 227 GB/s
+of all-reduce bandwidth. The KV transfer between the engines took the long way: out of the GPU
+over PCIe, through the NIC and back, at about 4.5 GB/s, roughly 1.5 % of what NVLink offers.
+
 I also verified that the moved KV was actually used. Across all runs, vLLM reported 4.61 million
 tokens' worth of KV pulled, and the decode engine counted 4.51 million prompt tokens it received
 from outside instead of computing. The 2 % gap is the transfer moving whole 16-token blocks.
@@ -130,6 +136,13 @@ improved, inter-token latency, was the same in both: 24.4 ms against 24.8 ms.
 The reasons are specific to this workload. Agent prompts here are 500 to 2,000 tokens, so
 prefill is quick and rarely stalls decoding. Under the split, the prefill GPUs sat at about 63 %
 busy while the decode GPUs saturated. With two colocated engines, all eight GPUs did useful work.
+
+Breaking time to first token into its parts shows where the split loses. At light load the
+difference is the prefill round trip and the transfer. At 28 jobs per second, most of the split's
+3.4 seconds is spent waiting in the gateway's own queue, while the colocated engines barely
+queue at all:
+
+![Where time to first token goes as load rises](../plots/article-5-ttft-breakdown.png)
 
 This is not a verdict against disaggregation in general. With prompts of 16,000 to 32,000 tokens
 mixed into the traffic, a long prefill would stall every sequence decoding beside it, and the
@@ -158,6 +171,12 @@ sequences instead of 120. The limit moved to where it belonged: decode slots and
 (The GPU-busy figures in the chart are averages over each whole run, and the first run also
 included two lighter load steps, so read them as direction rather than precise values.)
 
+The sequence below shows the mechanism. Reserving the decode slot first (step 1) is deliberate:
+it means prefilled KV never sits waiting for somewhere to go. The price is that every request
+waiting for a prefill slot (step 2) is already holding decode capacity.
+
+![One agent step through the KV hop](../plots/article-d3-hop-sequence.png)
+
 **On the A10 rehearsal**, three other control-plane decisions caused trouble before I fixed them:
 
 * **Warm-up judged on the wrong signal.** After a restart, the gateway opens an engine's capacity
@@ -174,6 +193,12 @@ included two lighter load steps, so read them as direction rather than precise v
   length, about three times what was actually generated, so 78 % of jobs were refused for using
   quota they never consumed. Reserving at admission and refunding unused tokens on completion
   fixed it.
+
+**Priority works while the gateway is the one waiting.** Under overload, the queue did what it
+was designed to do. Interactive requests finished within about 5 seconds, while queued batch
+requests were held until their 15-second aging promotion:
+
+![Priority under overload: interactive is protected, batch waits](../plots/article-6-ttft-cdf-by-class.png)
 
 **Priority only works where something waits.** The gateway puts interactive requests ahead of
 batch work in its queue. On the A100, with 192 decode slots per engine, a burst of 48 requests
@@ -262,6 +287,8 @@ help, and the overflow path to an external provider was tested only against a mo
 should be read as one careful case study, not a benchmark.
 
 ## Next: automated performance tuning
+
+![The control plane is a set of feedback loops](../plots/article-d4-control-loops.png)
 
 Almost every improvement above came from a person noticing a symptom and turning a knob: a
 dispatch cap, a ramp signal, a token budget, a hop threshold, a scaling trigger. Each of those is a

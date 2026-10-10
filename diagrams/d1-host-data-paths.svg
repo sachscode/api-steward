@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" viewBox="0 0 940 770" height="770"><title id="d1-title">One 8x A100 host as we ran it: two data paths</title><desc id="d1-desc">The A100 cross-section annotated with the measured experiment. GPUs 0-3 form the TP=4 prefill engine and GPUs 4-7 the TP=4 decode engine. Tensor-parallel all-reduce stays on the NVSwitch fabric (227 GB/s bus bandwidth measured). The KV transfer from prefill to decode leaves the GPU fabric: GPU, PCIe, ConnectX NIC in loopback, PCIe, GPU, at about 4.5 GB/s measured, because each engine is pinned to its own GPUs and cannot address the other's memory.</desc>
+<defs><marker id="arrow-kv" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#eb6834"></path></marker></defs>
+<text x="0" y="18" text-anchor="start" font-family="sans-serif" font-size="14" fill="#192b3b" font-weight="500">HOST + SYSTEM MEMORY</text>
+<rect x="8" y="32" width="336" height="56" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect><rect x="392" y="32" width="336" height="56" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect>
+<text x="176" y="56" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#192b3b" font-weight="500">CPU 0 + DDR4</text><text x="560" y="56" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#192b3b" font-weight="500">CPU 1 + DDR4</text>
+<text x="176" y="75" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">NUMA domain 0</text><text x="560" y="75" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">NUMA domain 1</text>
+<path d="M 344 61 H 392" fill="none" stroke="#bcc8d2" stroke-width="1.7"></path>
+<path d="M 176 88 V 111 M 560 88 V 111" fill="none" stroke="#7955a7" stroke-width="1.7" stroke-dasharray="5 4"></path>
+<rect x="8" y="111" width="720" height="44" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect>
+<text x="368" y="130" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#192b3b" font-weight="500">PCIe Gen4 root ports + switch hierarchy</text>
+<text x="368" y="147" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">GPU-to-NIC distance measured: PHB (through the CPU's host bridge)</text>
+<path d="M 184 155 V 178 M 552 155 V 178" fill="none" stroke="#7955a7" stroke-width="1.7" stroke-dasharray="5 4"></path>
+<rect x="18" y="178" width="342" height="48" rx="5" fill="#ffffff" stroke="#bcc8d2"></rect><rect x="376" y="178" width="342" height="48" rx="5" fill="#ffffff" stroke="#eb6834" stroke-width="1.8"></rect>
+<text x="189" y="198" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#192b3b" font-weight="500">NVMe SSDs</text><text x="189" y="215" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">Weights staged here: 61 GB read at 7.6 GB/s</text>
+<text x="547" y="198" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#192b3b" font-weight="500">ConnectX-5 NIC (mlx5_0)</text><text x="547" y="215" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">50 Gb/s RoCE, links to other nodes</text>
+<path d="M 8 137 H 5 V 540 M 728 137 H 731 V 540" fill="none" stroke="#7955a7" stroke-width="1.7" stroke-dasharray="5 4"></path>
+<text x="182" y="248" text-anchor="start" font-family="sans-serif" font-size="14" fill="#192b3b" font-weight="500">HGX GPU BASEBOARD</text>
+<rect x="178" y="254" width="380" height="326" rx="7" fill="#f7faf9" stroke="#bcc8d2"></rect>
+<text x="368" y="279" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#192b3b" font-weight="500">6 × NVSwitch</text>
+<rect x="187" y="303" width="176.5" height="44" rx="4" fill="#dceee9" stroke="#bcc8d2"></rect><text x="275.25" y="330" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">SW 0</text>
+<rect x="372.5" y="303" width="176.5" height="44" rx="4" fill="#dceee9" stroke="#bcc8d2"></rect><text x="460.75" y="330" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">SW 1</text>
+<rect x="187" y="356" width="176.5" height="44" rx="4" fill="#dceee9" stroke="#bcc8d2"></rect><text x="275.25" y="383" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">SW 2</text>
+<rect x="372.5" y="356" width="176.5" height="44" rx="4" fill="#dceee9" stroke="#bcc8d2"></rect><text x="460.75" y="383" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">SW 3</text>
+<rect x="187" y="409" width="176.5" height="44" rx="4" fill="#dceee9" stroke="#bcc8d2"></rect><text x="275.25" y="436" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">SW 4</text>
+<rect x="372.5" y="409" width="176.5" height="44" rx="4" fill="#dceee9" stroke="#bcc8d2"></rect><text x="460.75" y="436" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">SW 5</text>
+<text x="368" y="478" text-anchor="middle" font-family="sans-serif" font-size="12.5" fill="#167567" font-weight="600">TP=4 all-reduce stays here</text>
+<text x="368" y="496" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#167567">227 GB/s bus bandwidth measured</text>
+<text x="368" y="512" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#167567">(NCCL, 8 GPUs, 1 GB messages)</text>
+<text x="368" y="540" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">Every GPU links to every switch</text>
+<text x="368" y="558" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#192b3b">2 NVLinks per GPU per switch</text>
+<g font-family="sans-serif" fill="#192b3b">
+<path d="M 5 294 H 20 M 5 376 H 20 M 5 458 H 20 M 5 540 H 20" fill="none" stroke="#7955a7" stroke-width="1.7" stroke-dasharray="5 4"></path>
+<path d="M 162 294 H 178 M 162 376 H 178 M 162 458 H 178 M 162 540 H 178" fill="none" stroke="#167567" stroke-width="2.3"></path>
+<rect x="20" y="264" width="142" height="60" rx="5" fill="#fde3d6" stroke="#eb6834"></rect><text x="91" y="287" text-anchor="middle" font-size="14" font-weight="500">A100 · 0</text><text x="91" y="308" text-anchor="middle" font-size="12">40 GB HBM</text>
+<rect x="20" y="346" width="142" height="60" rx="5" fill="#fde3d6" stroke="#eb6834"></rect><text x="91" y="369" text-anchor="middle" font-size="14" font-weight="500">A100 · 1</text><text x="91" y="390" text-anchor="middle" font-size="12">40 GB HBM</text>
+<rect x="20" y="428" width="142" height="60" rx="5" fill="#fde3d6" stroke="#eb6834"></rect><text x="91" y="451" text-anchor="middle" font-size="14" font-weight="500">A100 · 2</text><text x="91" y="472" text-anchor="middle" font-size="12">40 GB HBM</text>
+<rect x="20" y="510" width="142" height="60" rx="5" fill="#fde3d6" stroke="#eb6834"></rect><text x="91" y="533" text-anchor="middle" font-size="14" font-weight="500">A100 · 3</text><text x="91" y="554" text-anchor="middle" font-size="12">40 GB HBM</text>
+<path d="M 716 294 H 731 M 716 376 H 731 M 716 458 H 731 M 716 540 H 731" fill="none" stroke="#7955a7" stroke-width="1.7" stroke-dasharray="5 4"></path>
+<path d="M 558 294 H 574 M 558 376 H 574 M 558 458 H 574 M 558 540 H 574" fill="none" stroke="#167567" stroke-width="2.3"></path>
+<rect x="574" y="264" width="142" height="60" rx="5" fill="#dce9f8" stroke="#2a78d6"></rect><text x="645" y="287" text-anchor="middle" font-size="14" font-weight="500">A100 · 4</text><text x="645" y="308" text-anchor="middle" font-size="12">40 GB HBM</text>
+<rect x="574" y="346" width="142" height="60" rx="5" fill="#dce9f8" stroke="#2a78d6"></rect><text x="645" y="369" text-anchor="middle" font-size="14" font-weight="500">A100 · 5</text><text x="645" y="390" text-anchor="middle" font-size="12">40 GB HBM</text>
+<rect x="574" y="428" width="142" height="60" rx="5" fill="#dce9f8" stroke="#2a78d6"></rect><text x="645" y="451" text-anchor="middle" font-size="14" font-weight="500">A100 · 6</text><text x="645" y="472" text-anchor="middle" font-size="12">40 GB HBM</text>
+<rect x="574" y="510" width="142" height="60" rx="5" fill="#dce9f8" stroke="#2a78d6"></rect><text x="645" y="533" text-anchor="middle" font-size="14" font-weight="500">A100 · 7</text><text x="645" y="554" text-anchor="middle" font-size="12">40 GB HBM</text>
+<text x="91" y="598" text-anchor="middle" font-size="13" font-weight="600">Prefill engine · TP=4</text><text x="91" y="615" text-anchor="middle" font-size="11.5">GPUs 0-3 (pinned)</text>
+<text x="645" y="598" text-anchor="middle" font-size="13" font-weight="600">Decode engine · TP=4</text><text x="645" y="615" text-anchor="middle" font-size="11.5">GPUs 4-7 (pinned)</text>
+</g>
+<path d="M 20 300 H 12 V 166 H 547 V 176" fill="none" stroke="#eb6834" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#arrow-kv)"></path>
+<path d="M 718 202 H 724 V 300 H 719" fill="none" stroke="#eb6834" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#arrow-kv)"></path>
+<g font-family="sans-serif" fill="#192b3b">
+<rect x="750" y="150" width="182" height="176" rx="6" fill="#fff6f1" stroke="#eb6834"></rect>
+<text x="762" y="172" font-size="13" font-weight="600" fill="#b5441a">KV hop: prefill to decode</text>
+<text x="762" y="194" font-size="12">GPU, PCIe, NIC (loopback),</text>
+<text x="762" y="210" font-size="12">PCIe, GPU</text>
+<text x="762" y="234" font-size="12">1,740-token prompt:</text>
+<text x="762" y="250" font-size="12">171 MB in 41 ms per rank</text>
+<text x="762" y="266" font-size="12" font-weight="600">≈ 4.5 GB/s, 1.5 % of NVLink</text>
+<text x="762" y="290" font-size="11.5">Each engine sees only its</text>
+<text x="762" y="305" font-size="11.5">own GPUs, so the copy</text>
+<text x="762" y="320" font-size="11.5">cannot use NVSwitch.</text>
+<rect x="750" y="404" width="182" height="120" rx="6" fill="#f2f8f6" stroke="#167567"></rect>
+<text x="762" y="426" font-size="13" font-weight="600" fill="#167567">Inside each engine</text>
+<text x="762" y="448" font-size="12">TP all-reduce over</text>
+<text x="762" y="464" font-size="12">NVSwitch, ~96 per</text>
+<text x="762" y="480" font-size="12">decode step.</text>
+<text x="762" y="504" font-size="12" font-weight="600">NVLink ≈ 48× the NIC</text>
+</g>
+<g font-family="sans-serif" font-size="12" fill="#192b3b">
+<path d="M 8 655 H 31" fill="none" stroke="#167567" stroke-width="2.3"></path><text x="41" y="659">NVLink 3: 12 links per GPU, 300 GB/s send + 300 GB/s receive per GPU</text>
+<path d="M 8 683 H 31" fill="none" stroke="#7955a7" stroke-width="1.7" stroke-dasharray="5 4"></path><text x="41" y="687">PCIe Gen4 x16: ~32 GB/s each way</text>
+<path d="M 8 711 H 31" fill="none" stroke="#eb6834" stroke-width="3.5"></path><text x="41" y="715">KV transfer path measured in the experiment (NIXL over UCX, RoCE loopback)</text>
+<text x="8" y="747" fill="#52514e">Measured values from one Lambda 8x A100 40 GB SXM4 host; link rates are theoretical. Schematic, not a mechanical drawing.</text>
+</g>
+</svg>
