@@ -23,8 +23,9 @@ evidence behind each claim.
 
 * Paper sizing predicted vLLM's KV capacity within 2 % (865k vs 878,464 tokens).
 * Moving KV over NIXL (~4.5 GB/s via the RoCE NIC) never beat recomputing the prompt locally.
-* Colocated engines beat the prefill/decode split on the same 8 GPUs: +27 % tokens/s and
-  13× lower TTFT p99 at 20 jobs/s, with the same inter-token latency.
+* Colocated engines beat the prefill/decode split on the same 8 GPUs: 20 vs 12 jobs/s within a
+  2 s p99 TTFT (about 1.7× cheaper per job) and 13× lower TTFT p99 at 20 jobs/s, with the same
+  inter-token latency.
 * The first bottleneck was the gateway's own settings, not the GPUs or KV (KV never above 15 %).
 * KEDA scaled within 21 s, but a 30B replica took ~3.6 min to become ready.
 

@@ -120,7 +120,7 @@ def split_vs_colocated() -> None:
     title(
         ax,
         "Same 8 GPUs, same load: colocated wins",
-        "Agent steps of 0.5-2k tokens. Colocated: +27% tokens/s, same inter-token latency (24.8 vs 24.4 ms).",
+        "Agent steps of 0.5-2k tokens. Within a 2 s p99 target, colocated sustained 20 jobs/s, the split 12. Same ITL.",
     )
     save(fig, "2-split-vs-colocated")
 
@@ -210,18 +210,20 @@ def scale_out_timeline() -> None:
 
 
 def _trace_by_step(run: str):
-    """Served requests from the gateway trace, tagged with the load step they arrived in."""
+    """Served requests from the gateway trace, tagged with the load step they arrived in.
+
+    Step boundaries come from the load file (each job records its step), not from the planned
+    durations: under overload the load generator itself fell behind, so real steps ran long."""
     import pandas as pd
 
-    meta = json.loads((M / f"a100-{run}-meta.json").read_text())
-    phases = [tuple(map(float, p.split(":"))) for p in meta["phases"].split(",")]
+    jobs = pd.read_json(M / "load" / f"a100-{run}.jsonl", lines=True)
+    bounds = jobs.groupby("phase").agg(rate=("rate", "first"), first=("start", "min")).sort_index()
+    end = float((jobs.start + jobs.duration_s).max())
+    edges = list(bounds["first"]) + [end]
     t = pd.read_json(M / "traces" / "cluster.jsonl", lines=True)
     t["arrival"] = t.ts - t.e2e_s.fillna(0)
-    w = t[(t.arrival >= meta["start"]) & (t.arrival <= meta["end"]) & (t.status == 200)].copy()
-    edges = [meta["start"]]
-    for duration, _ in phases:
-        edges.append(edges[-1] + duration)
-    w["load_step"] = pd.cut(w.arrival, edges, labels=[r for _, r in phases])
+    w = t[(t.arrival >= edges[0]) & (t.arrival <= end) & (t.status == 200)].copy()
+    w["load_step"] = pd.cut(w.arrival, edges, labels=list(bounds["rate"]), include_lowest=True)
     return w
 
 

@@ -130,24 +130,25 @@ prefill/decode split (four GPUs each), and two ordinary engines that each do bot
 ![Same 8 GPUs, same load: colocated wins](../plots/article-2-split-vs-colocated.png)
 
 At 20 agent jobs per second, p99 time to first token was **16.7 s split and 1.2 s colocated**.
-Colocated also produced 27 % more tokens per second. And the one thing the split should have
-improved, inter-token latency, was the same in both: 24.4 ms against 24.8 ms.
+With a target of 2 seconds for p99 time to first token, the split sustained 12 agent jobs per
+second and the colocated engines at least 20, on the same hardware. And the one thing the split
+should have improved, inter-token latency, was the same in both: 24.4 ms against 24.8 ms.
 
 The reasons are specific to this workload. Agent prompts here are 500 to 2,000 tokens, so
 prefill is quick and rarely stalls decoding. Under the split, the prefill GPUs sat at about 63 %
 busy while the decode GPUs saturated. With two colocated engines, all eight GPUs did useful work.
 
 Breaking time to first token into its parts shows where the split loses. At light load the
-difference is the prefill round trip and the transfer. At 28 jobs per second, most of the split's
-3.4 seconds is spent waiting in the gateway's own queue, while the colocated engines barely
-queue at all:
+difference is the prefill round trip and the transfer. As load rises, the split's time in the
+gateway's own queue grows: at 28 jobs per second it is about half of a 2.4-second average, while
+the colocated engines average 0.9 seconds and barely queue at all:
 
 ![Where time to first token goes as load rises](../plots/article-5-ttft-breakdown.png)
 
 This is not a verdict against disaggregation in general. With prompts of 16,000 to 32,000 tokens
 mixed into the traffic, a long prefill would stall every sequence decoding beside it, and the
 split's isolation would start to matter. I did not run that case. For short-prompt agent
-workloads on a 50 Gb NIC, though, the split cost throughput and tail latency and bought nothing.
+workloads on a 50 Gb NIC, though, the split cost capacity and tail latency and bought nothing.
 
 ---
 
@@ -264,6 +265,24 @@ your tools.
 
 ---
 
+## The loop I did not have: cost
+
+None of the control loops above looked at cost, and every finding has a price. The signal a
+cost loop should use is GPU-hours per completed request at the latency target, which is
+capacity at the SLO, not raw tokens per second.
+
+| | Prefill/decode split | Two colocated engines |
+| --- | --- | --- |
+| Jobs per second within a 2 s p99 TTFT | 12 | at least 20 |
+| Cost per 1,000 agent jobs at that rate ($15.92/h host) | $0.37 | $0.22 or less |
+
+So on this workload the split cost about 1.7× as much per job. The other waste was idle capacity:
+the late replica held four A100s for six minutes and served nothing, about 0.4 GPU-hours. A
+cost loop would read cost per job at the SLO and idle GPU time, and its knobs are the slow,
+expensive ones: topology, replica count, warm standby and the scale-in cooldown. It reacts in
+minutes to hours, so it has to sit above the faster loops and set their limits rather than
+compete with them.
+
 ## Rules of thumb I am taking away
 
 1. **Size on paper first.** The arithmetic predicted KV capacity within 2 %. It is cheaper than a
@@ -271,7 +290,7 @@ your tools.
 2. **Compute KV production rate ÷ link bandwidth before disaggregating.** At 44 %, moving KV
    cannot beat recomputing it.
 3. **Match the architecture to the prompt length.** For short-prompt agent traffic, colocated
-   engines beat a prefill/decode split on throughput and tail latency.
+   engines beat a prefill/decode split on capacity and tail latency.
 4. **Treat the control plane as a component that can be the bottleneck.** Alert when gateway
    queues grow while GPUs are under-used.
 5. **Judge engine health on engine latency**, not on latency that includes your own queue.
@@ -290,11 +309,21 @@ should be read as one careful case study, not a benchmark.
 
 ![The control plane is a set of feedback loops](../plots/article-d4-control-loops.png)
 
-Almost every improvement above came from a person noticing a symptom and turning a knob: a
-dispatch cap, a ramp signal, a token budget, a hop threshold, a scaling trigger. Each of those is a
-control loop that could be closed automatically, using signals the system already exports. Part 2
-will look at what it takes to tune an inference cluster's control plane automatically, starting
-with the knobs and measurements from this one.
+I made most of these changes by hand, based on what I saw in the measurements. Some were
+parameter changes, like raising the gateway's limit on concurrent prefill calls (its prefill
+dispatch cap). I also changed the signal driving the warm-up ramp and added a control loop to
+manage the KV token budget. For KV movement, the measurements showed it wasn't worth doing on this
+hardware.
+
+An automatic tuner could have helped with the dispatch cap. Parameter tuning alone wouldn't have
+corrected the signal the warm-up loop was using. No tuning of the scaling trigger could have
+shortened the three and a half minutes it took a new replica to become ready. Prefill and decode
+were coupled: requests waiting for prefill held decode slots, so a tuner watching either pool alone
+could misidentify the bottleneck.
+
+In Part 2, I'll use these measurements to work through which tuning decisions we can automate.
+I'll look at what each loop needs to measure, which knobs it can safely adjust, and how to
+coordinate those adjustments when loops share capacity.
 
 *Code, data and dashboards:* [github.com/sachscode/api-steward](https://github.com/sachscode/api-steward).
 *Built as the final project for AI Inference Engineering & Systems Design.*

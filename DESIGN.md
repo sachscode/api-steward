@@ -195,7 +195,7 @@ Experiments run with `cluster/experiment.sh`, summarised by `cluster/analyze_run
 | --- | --- | --- |
 | E5a | Hop vs local recompute, 0.5k-25k tokens (`a100-hop-probe.json`) | Local wins at every size (1.5-2.3×). NIXL ~4.5 GB/s; the transfer adds ~44 % to prefill time because prefill makes KV at ~2 GB/s (20k tokens/s × 96 KiB). |
 | E3 | Load sweep, P/D split (`sweep2`, `sweep3`) | At 20 jobs/s, prefill cap 8: TTFT p50 2.0 s, p99 27 s, prefill queue 65, decode queue 277, 120 sequences in vLLM. Cap 32 at the same rate: p50 1.1 s, p99 17 s, prefill queue 12, 172 sequences; the limit moves to decode slots/GPU. (Run-average GPU figures mix different load steps; compare the 20 jobs/s step.) Knee ≈ 12 jobs/s (TTFT p99 1.0 s). |
-| E4 | P/D vs colocated, same 8 GPUs (`sweep3` vs `colo`) | Colocated: +27 % tokens/s; TTFT p99 at 20 jobs/s **1.23 s vs 16.7 s**; same ITL (24.8 vs 24.4 ms). |
+| E4 | P/D vs colocated, same 8 GPUs (`sweep3` vs `colo`) | Within a 2 s p99 TTFT target: split 12 jobs/s, colocated ≥ 20 (**$0.37 vs ≤ $0.22 per 1,000 jobs** at $15.92/h). TTFT p99 at 20 jobs/s **1.23 s vs 16.7 s**; same ITL (24.8 vs 24.4 ms). Run-average tokens/s is not comparable: under overload the load generator itself fell behind in the split run. |
 | E8 | KEDA scale-out (`autoscale`) | Scaled 21 s into the burst; replica ready at +239 s; burst ended at +156 s; 0 requests served; scaled down at +381 s. |
 | E7 | Noisy tenant (`noisy`) | 541 of the flooder's requests refused at admission; other tenants TTFT p99 **0.38 s**. |
 

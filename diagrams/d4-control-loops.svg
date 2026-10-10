@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="940" viewBox="0 0 940 720" height="720"><title id="d4-title">The control plane as feedback loops</title><desc id="d4-desc">Top: the warm-up ramp before and after the fix. Before, the ramp gate read client time to first token, which includes the gateway's own queue, forming a reinforcing loop that held a healthy engine at 25 percent of its slots. After, it reads the engine's own time to first token, and the ramp opens. Bottom: every control loop in the gateway and cluster, with its signal, knob, reaction time, and what went wrong when it was tuned by hand.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="940" viewBox="0 0 940 752" height="752"><title id="d4-title">The control plane as feedback loops</title><desc id="d4-desc">Top: the warm-up ramp before and after the fix. Before, the ramp gate read client time to first token, which includes the gateway's own queue, forming a reinforcing loop that held a healthy engine at 25 percent of its slots. After, it reads the engine's own time to first token, and the ramp opens. Bottom: every control loop in the gateway and cluster, with its signal, knob, reaction time, and what went wrong when it was tuned by hand.</desc>
 <defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#52514e"></path></marker></defs>
 <g font-family="sans-serif" fill="#192b3b">
 <text x="20" y="28" font-size="16" font-weight="600">The control plane is a set of feedback loops</text>
@@ -43,9 +43,10 @@
 <text x="30" y="584" font-weight="600">Hop decision</text><text x="170" y="584">Uncached prompt tokens</text><text x="380" y="584">Move KV or recompute</text><text x="560" y="584">Per request</text><text x="650" y="584">At 4.5 GB/s the hop never won</text>
 <text x="30" y="614" font-weight="600">Autoscaling</text><text x="170" y="614">Decode running + waiting</text><text x="380" y="614">Add a replica (KEDA)</text><text x="560" y="614">~3.6 min</text><text x="650" y="614">Replica arrived 83 s after the burst</text>
 <text x="30" y="644" font-weight="600">Priority</text><text x="170" y="644">Request class</text><text x="380" y="644">Order in our queue</text><text x="560" y="644">Per request</text><text x="650" y="644">Lost inside vLLM when we did not queue</text>
+<text x="30" y="674" font-weight="600" fill="#167567">Cost (not built)</text><text x="170" y="674">GPU-hours per job at the SLO</text><text x="380" y="674">Topology, replicas, standby</text><text x="560" y="674">Mins to hours</text><text x="650" y="674">Split cost 1.7x per job; idle replica 0.4 GPU-h</text>
 </g>
-<path d="M 20 476 H 920 M 20 506 H 920 M 20 536 H 920 M 20 566 H 920 M 20 596 H 920 M 20 626 H 920 M 20 656 H 920" stroke="#e6e5e1" stroke-width="1"></path>
-<text x="20" y="690" font-size="12.5" font-weight="600" fill="#167567">Part 2: close these loops automatically, using signals the system already exports.</text>
-<text x="20" y="708" font-size="11" fill="#52514e">R = reinforcing loop, B = balancing loop. Numbers from the A10 rehearsal and the 8x A100 runs in metrics/.</text>
+<path d="M 20 476 H 920 M 20 506 H 920 M 20 536 H 920 M 20 566 H 920 M 20 596 H 920 M 20 626 H 920 M 20 656 H 920 M 20 686 H 920" stroke="#e6e5e1" stroke-width="1"></path>
+<text x="20" y="720" font-size="12.5" font-weight="600" fill="#167567">Part 2: close these loops automatically, using signals the system already exports.</text>
+<text x="20" y="740" font-size="11" fill="#52514e">R = reinforcing loop, B = balancing loop. Numbers from the A10 rehearsal and the 8x A100 runs in metrics/.</text>
 </g>
 </svg>
