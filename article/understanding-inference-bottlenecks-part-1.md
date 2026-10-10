@@ -1,0 +1,269 @@
+# Understanding Inference Bottlenecks
+
+## Part 1: What actually limits a disaggregated MoE cluster serving an AI agent
+
+I built a small inference cluster to serve a tool-using AI agent, wrote the control plane in
+front of it myself, and then measured where the time went. I expected the usual suspects: GPU
+memory, the KV cache, the network between prefill and decode. On the night of the experiments,
+the KV cache never got above 15 % full. The biggest losses came from three other places:
+
+* **A single line in my own gateway config** left four of eight A100s about two-thirds idle while
+  277 requests waited in a queue.
+* **Prefill/decode disaggregation**, the architecture I had built the cluster around, made tail
+  latency 13× worse than running two ordinary engines on the same GPUs.
+* **Autoscaling worked exactly as designed**, scaling up 21 seconds into a traffic burst, and
+  still served zero requests of it, because a 30B MoE replica takes about 3.6 minutes to start.
+
+This article walks through the cluster one building block at a time. For each block I state
+what I expected from first principles, how I measured it, and what happened. The code, the raw
+measurements and every chart are in the repository:
+[github.com/sachscode/api-steward](https://github.com/sachscode/api-steward).
+
+---
+
+## The setup
+
+**The workload.** The agent, which I call API Steward, helps migrate code across a breaking API
+change. My test case is the public Stripe Python SDK upgrade where `Invoice.upcoming` became
+`Invoice.create_preview`. The agent runs on synthetic fixtures and never calls Stripe. Each user
+request runs a loop of four model calls: inspect the code, read the migration guide, check the
+proposed mapping, answer. Every call carries the same 518-token system prompt and tool schema,
+and the conversation grows by a few hundred tokens per step. That shape (short prompts, a large
+shared prefix, many dependent calls) is typical of agents, and it matters for every result below.
+
+**The model.** Qwen3-30B-A3B, a mixture-of-experts model: 30.5 billion parameters, of which about
+3.3 billion are used per token. Every expert must sit in GPU memory, but each token only pays the
+compute of a few of them.
+
+**The hardware.** One Lambda instance with 8× A100 40 GB SXM4, connected by NVLink inside the box
+and a 50 Gb/s RoCE NIC to the outside. I designed for two such hosts, with prefill on one and
+decode on the other, but on the night of the runs exactly one of these instances was available
+across all of Lambda's regions. So prefill ran on GPUs 0-3 and decode on GPUs 4-7 of the same
+machine. As it turned out, the KV transfer between them still went out through the RoCE NIC and
+back in (more on that below), so the transfer numbers reflect the same 50 Gb/s path a two-host
+setup would use.
+
+**The serving stack.** vLLM 0.30 with tensor parallelism of 4 per engine, NIXL for moving KV cache
+between engines, Kubernetes (k3s) with KEDA for autoscaling, and Prometheus plus Grafana. In front
+of it sits a gateway I wrote: guardrails, admission control per tenant, placement, its own queue
+per engine, the decision whether to move KV or recompute it, warm-up, and an overflow path. The
+gateway and the engines are separate processes, and the agent only ever talks to the gateway.
+
+---
+
+## Block 1: GPU memory and the KV cache
+
+**Expectation.** Before renting anything, I sized the system on paper:
+
+```
+KV bytes per token  = 2 (K and V) × 48 layers × 4 KV heads × 128 dims × 2 bytes = 96 KiB
+Weights per GPU     = 30.5 B params × 2 bytes ÷ 4 GPUs                           = 14.2 GiB
+KV per GPU          = 40 GiB × 0.90 − 14.2 GiB − ~2 GiB overhead                  = 19.8 GiB
+KV per engine       ≈ 865,000 tokens
+```
+
+**Measured.** vLLM reported 14.25 GiB of weights per GPU and **878,464 tokens** of KV capacity,
+within 2 % of the estimate. The only real error was my overhead guess: activations and CUDA graphs
+took 1.1 GiB, not 2.
+
+Two details made the arithmetic work. Grouped-query attention is why this model stores 4 KV heads
+instead of 32, which shrinks the KV cache eightfold. And tensor parallelism should not exceed the
+number of KV heads: at TP=8, four KV heads across eight GPUs means every head is stored twice.
+
+**What happened under load.** My hypothesis was that the engine's sequence limit (256) would bind
+before the KV cache (about 480 sequences at the agent's prompt length). Neither came close. Peak KV
+use was **15 %**, there were **zero preemptions** in every run, and the engine never ran more
+than 172 sequences. For agent-length prompts on this hardware, KV memory was simply not the
+constraint. That changes what you should buy and what you should tune.
+
+---
+
+## Block 2: The interconnect and the KV hop
+
+In a disaggregated design, one engine computes the prompt (prefill) and another generates tokens
+(decode). The KV cache built during prefill has to move to the decode engine, or the decode engine
+has to compute the prompt again. The question is when moving beats recomputing.
+
+**Expectation.** The transfer adds time; it pays off only if it saves more than it costs.
+
+**Measured.** I sent fresh prompts of 500 to 25,000 tokens down both paths and timed the first
+token. Recomputing locally won at every size:
+
+![Moving KV never beat recomputing it](../plots/article-1-hop-vs-recompute.png)
+
+At 25,000 tokens the hop path took 1.9 s and the local path 1.25 s. The hop path does all the
+prefill work anyway, on the other engine, and then adds a 2.5 GB transfer that takes about half a
+second.
+
+A useful rule of thumb falls out of this. This engine prefills about 20,000 tokens per second,
+and each token produces 96 KiB of KV, so prefill *produces* KV at roughly 2 GB/s. The link moved
+it at about 4.5 GB/s. So the transfer always added about 2 ÷ 4.5 ≈ **44 %** on top of the prefill
+time. Over NVLink, at 300 GB/s, the same ratio would be under 1 %. Before building a
+disaggregated cluster, compute *KV bytes produced per second of prefill ÷ link bandwidth*. If that
+number is not small, disaggregation cannot win on latency per request.
+
+One surprise: the transfer between two engines on the same machine went out through the NIC and
+came back in. Each engine was pinned to its own four GPUs, so neither process could address the
+other's memory directly. The NIC's receive counter matched NIXL's byte count to within protocol
+overhead.
+
+I also verified that the moved KV was actually used. Across all runs, vLLM reported 4.61 million
+tokens' worth of KV pulled, and the decode engine counted 4.51 million prompt tokens it received
+from outside instead of computing. The 2 % gap is the transfer moving whole 16-token blocks.
+
+---
+
+## Block 3: Disaggregated or colocated?
+
+**Expectation.** Disaggregation is supposed to protect token generation from long prefills that
+would otherwise interrupt it. Its cost is the transfer and an extra network round trip.
+
+**Measured.** I ran the same agent traffic on the same eight GPUs in two layouts: a
+prefill/decode split (four GPUs each), and two ordinary engines that each do both.
+
+![Same 8 GPUs, same load: colocated wins](../plots/article-2-split-vs-colocated.png)
+
+At 20 agent jobs per second, p99 time to first token was **16.7 s split and 1.2 s colocated**.
+Colocated also produced 27 % more tokens per second. And the one thing the split should have
+improved, inter-token latency, was the same in both: 24.4 ms against 24.8 ms.
+
+The reasons are specific to this workload. Agent prompts here are 500 to 2,000 tokens, so
+prefill is quick and rarely stalls decoding. Under the split, the prefill GPUs sat at about 63 %
+busy while the decode GPUs saturated. With two colocated engines, all eight GPUs did useful work.
+
+This is not a verdict against disaggregation in general. With prompts of 16,000 to 32,000 tokens
+mixed into the traffic, a long prefill would stall every sequence decoding beside it, and the
+split's isolation would start to matter. I did not run that case. For short-prompt agent
+workloads on a 50 Gb NIC, though, the split cost throughput and tail latency and bought nothing.
+
+---
+
+## Block 4: The gateway is a building block too
+
+This was the part I least expected to write about, because I wrote the gateway.
+
+**On the A100.** I had set the gateway to send at most 8 concurrent requests to the prefill
+engine. I chose that number during a rehearsal on a single A10 GPU with a tiny model, where it
+made sense. On the A100s, it starved the prefill GPUs:
+
+![The first bottleneck was a gateway setting](../plots/article-3-bottleneck-shift.png)
+
+With the cap at 8, the prefill GPUs were about 32 % busy and 277 requests waited in the gateway's
+queue, while the engine had room for more than twice the sequences it was running. Worse, my
+gateway reserves a decode slot before starting prefill, so that prefilled KV never waits for a
+place to go. That meant requests queued for prefill were also holding decode capacity. Raising the
+cap to 32 lifted throughput by 55 % and moved the limit to where it belonged: decode GPU time.
+
+**On the A10 rehearsal**, three other control-plane decisions caused trouble before I fixed them:
+
+* **Warm-up judged on the wrong signal.** After a restart, the gateway opens an engine's capacity
+  in steps (25 %, 50 %, 100 %) and holds a step if latency looks bad. I fed it the latency the
+  *client* saw, which includes time spent in the gateway's own queue. With capacity throttled, the
+  queue grew, latency rose, and the ramp held: queue wait reached 12 seconds while the engine
+  answered in 40 ms. Judging the engine on its own latency fixed it, and cut p99 time to first
+  token from 17.3 s to 4.4 s.
+* **Counting requests instead of tokens.** The gateway capped each engine at 16 requests. Forty
+  long prompts arriving in one second all fitted under that cap and overfilled the KV cache, so
+  vLLM evicted five of them. Reserving each request's tokens against the engine's actual KV
+  capacity brought preemptions to zero.
+* **Billing the budget instead of the usage.** Tenants were charged each request's maximum output
+  length, about three times what was actually generated, so 78 % of jobs were refused for using
+  quota they never consumed. Reserving at admission and refunding unused tokens on completion
+  fixed it.
+
+**Priority only works where something waits.** The gateway puts interactive requests ahead of
+batch work in its queue. On the A100, with 192 decode slots per engine, a burst of 48 requests
+fitted entirely inside the engine and never queued in the gateway. vLLM then served them in
+arrival order, and short interactive requests waited behind long batch prompts: 2.4 s against
+1.65 s. A gateway's priority policy only holds while the gateway is the one doing the waiting.
+Passing priority through to the engine (vLLM supports a priority scheduling policy) is the fix I
+have not built yet.
+
+The common thread: each of these controls was reasonable on its own, and each one made the GPUs
+wait. When latency is bad, look at what your router and queue are doing to the GPUs you already
+have before buying more.
+
+---
+
+## Block 5: Scaling and warm-up
+
+**Expectation.** Kubernetes event-driven autoscaling (KEDA) adds a decode engine when decode load
+crosses a threshold.
+
+**Measured.** I sent a burst of 20 agent jobs per second for two and a half minutes to a single
+decode engine.
+
+![Autoscaling reacted in 21 s; the replica arrived 83 s too late](../plots/article-4-scale-out-timeline.png)
+
+KEDA saw the pressure and scaled up 21 seconds into the burst. The new replica then spent about
+three and a half minutes loading 57 GB of weights, compiling kernels and capturing CUDA graphs. It
+became ready 83 seconds after the burst had ended, sat idle through KEDA's three-minute cooldown,
+and was removed having served nothing. Meanwhile, the one engine absorbed the burst with a median
+time to first token of 4.2 s, compared with 0.6 s when two engines were already running.
+
+There is a second warm-up problem. An engine that has passed its health check is not necessarily
+warm. The first 1,700-token prompt after startup took **1,014 ms** of prefill instead of about
+100 ms, because vLLM compiled a mixture-of-experts kernel for a prompt shape it had not seen yet.
+A warm-up that sends one short request does not cover that.
+
+So for a model of this size, reactive autoscaling only helps with load that lasts longer than
+replica startup. For shorter bursts, the realistic options are a warm standby, scaling on an
+earlier signal, or cutting startup time (a persistent compile cache, fewer CUDA graph sizes, or
+keeping weights resident). Warm-up requests should cover the range of prompt sizes you expect.
+
+---
+
+## Block 6: Tenancy
+
+**Measured.** One tenant sent 70 % of the traffic under tight limits; two others sent the rest.
+The gateway refused 541 of the flooding tenant's requests at admission, before any GPU work.
+The other tenants' p99 time to first token stayed at **0.38 s**. Admission control per tenant,
+enforced in the gateway, kept one customer from owning the GPUs.
+
+---
+
+## Block 7: The agent itself
+
+For completeness, one result that had nothing to do with serving. On the first A100 run, **0 %**
+of agent jobs completed. The model was not at fault and neither was the cluster. A tool
+parameter called `operation` had no description, so the model reasonably passed the name of the
+web route. Then, once described, it passed `Invoice.create_preview` without the `stripe.` prefix,
+and my checker compared exact strings. Describing the parameter's format and accepting the
+equivalent spelling took completion to 100 % in about 2.6 seconds per four-call job. Before you
+blame the model or the serving stack for agent failures, read what the model actually sends to
+your tools.
+
+---
+
+## Rules of thumb I am taking away
+
+1. **Size on paper first.** The arithmetic predicted KV capacity within 2 %. It is cheaper than a
+   GPU hour.
+2. **Compute KV production rate ÷ link bandwidth before disaggregating.** At 44 %, moving KV
+   cannot beat recomputing it.
+3. **Match the architecture to the prompt length.** For short-prompt agent traffic, colocated
+   engines beat a prefill/decode split on throughput and tail latency.
+4. **Treat the control plane as a component that can be the bottleneck.** Alert when gateway
+   queues grow while GPUs are under-used.
+5. **Judge engine health on engine latency**, not on latency that includes your own queue.
+6. **Reserve KV in tokens, not requests.**
+7. **Do not autoscale faster than you can start.** Replica startup, not the autoscaler, sets the
+   shortest burst you can absorb.
+
+## Limitations
+
+This is one model, one workload shape and one host. The KV transfer used a real RoCE NIC, but
+not a switch between two machines. I did not run the long-prompt case where disaggregation should
+help, and the overflow path to an external provider was tested only against a mock. The numbers
+should be read as one careful case study, not a benchmark.
+
+## Next: automated performance tuning
+
+Almost every improvement above came from a person noticing a symptom and turning a knob: a
+dispatch cap, a ramp signal, a token budget, a hop threshold, a scaling trigger. Each of those is a
+control loop that could be closed automatically, using signals the system already exports. Part 2
+will look at what it takes to tune an inference cluster's control plane automatically, starting
+with the knobs and measurements from this one.
+
+*Code, data and dashboards:* [github.com/sachscode/api-steward](https://github.com/sachscode/api-steward).
+*Built as the final project for AI Inference Engineering & Systems Design.*
