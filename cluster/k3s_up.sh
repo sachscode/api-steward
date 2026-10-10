@@ -3,6 +3,7 @@
 #
 #   bash ~/cluster/k3s_up.sh rehearsal   # A10: one node plays prefill and decode
 #   bash ~/cluster/k3s_up.sh prefill     # host A: k3s server, prefill pool, gateway, monitoring
+#   bash ~/cluster/k3s_up.sh single      # one 8-GPU host runs both pools (prefill GPUs 0-3, decode 4-7)
 #
 # Installs: k3s (nvidia default runtime), helm, HAMi (GPU device plugin + scheduler), KEDA,
 # Prometheus, Grafana, DCGM exporter; imports the engine image from steward-fs.
@@ -12,7 +13,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/common.sh"
 
 POOL="${1:-rehearsal}"
-case "$POOL" in rehearsal|prefill) ;; *) echo "usage: $0 rehearsal|prefill" >&2; exit 2 ;; esac
+case "$POOL" in rehearsal|prefill|single) ;; *) echo "usage: $0 rehearsal|prefill|single" >&2; exit 2 ;; esac
 FS="$(steward_fs)"
 TAR="$FS/images/steward-vllm-nixl-${VLLM_VERSION}.tar"
 [[ -s "$TAR" ]] || { echo "Missing $TAR. Run a10_prep.sh first." >&2; exit 1; }

@@ -62,6 +62,16 @@ PROFILES = {
         },
     },
 }
+# One 8x A100 host (no second host available in any region): prefill-0 and decode-0 take four
+# whole GPUs each, so the KV hop runs over NVLink instead of RoCE. KEDA's slot-1 engines only fit
+# when one pool is off, which is how the colocated runs and the scale-out run use them.
+PROFILES["a100-single"] = {
+    **PROFILES["a100"],
+    "node_pool": {"prefill": "single", "decode": "single"},
+    "ucx_devices": "all",
+    "keda": {"prefill": 8, "decode": 48},
+    "gateway": {**PROFILES["a100"]["gateway"], "node_pool": "single"},
+}
 
 # pool -> slot -> (api port, NIXL side-channel base port). Spaced so TP ranks never collide.
 PORTS = {
