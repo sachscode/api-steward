@@ -152,7 +152,11 @@ With the cap at 8, the prefill GPUs were about 32 % busy and 277 requests waited
 queue, while the engine had room for more than twice the sequences it was running. Worse, my
 gateway reserves a decode slot before starting prefill, so that prefilled KV never waits for a
 place to go. That meant requests queued for prefill were also holding decode capacity. Raising the
-cap to 32 lifted throughput by 55 % and moved the limit to where it belonged: decode GPU time.
+cap to 32, at the same 20 jobs per second, halved median time to first token (2.0 s to 1.1 s),
+cut p99 from 27 s to 17 s, shrank the prefill queue from 65 to 12 and let the engine run 172
+sequences instead of 120. The limit moved to where it belonged: decode slots and decode GPU time.
+(The GPU-busy figures in the chart are averages over each whole run, and the first run also
+included two lighter load steps, so read them as direction rather than precise values.)
 
 **On the A10 rehearsal**, three other control-plane decisions caused trouble before I fixed them:
 

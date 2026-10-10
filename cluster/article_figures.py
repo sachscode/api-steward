@@ -163,7 +163,7 @@ def bottleneck_shift() -> None:
     title(
         ax,
         "The first bottleneck was a gateway setting",
-        "Load sweep up to 20-28 agent jobs/s. KV never mattered; one config line left the prefill GPUs two-thirds idle.",
+        "GPU busy = run averages (the cap-8 run also had two lighter load steps); sequences and KV = peaks.",
     )
     save(fig, "3-bottleneck-shift")
 
