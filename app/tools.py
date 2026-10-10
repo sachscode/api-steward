@@ -87,7 +87,15 @@ def execute_tool(name: str, arguments: str) -> dict:
         "items_parameter": "subscription_details.items",
         "api_version": "2025-03-31.basil",
     }
-    checks = {key: args[key] == value for key, value in expected.items()}
+
+    # The `stripe.` module prefix is optional: `Invoice.create_preview` after `from stripe import
+    # Invoice` is the same call. Resource and method must still match exactly.
+    def same(key: str, value: str) -> bool:
+        if key == "operation":
+            return args[key].strip().removeprefix("stripe.") == value.removeprefix("stripe.")
+        return args[key].strip() == value
+
+    checks = {key: same(key, value) for key, value in expected.items()}
     return {
         "ok": all(checks.values()),
         "checks": checks,

@@ -428,3 +428,13 @@ async def test_gateway_sets_token_budget_from_engine():
     cap = gw.fleet.states["decode-0"].queue.token_cap
     await gw.stop()
     assert cap == int(1000 * 16 * 0.92)
+
+
+def test_mapping_check_accepts_module_prefix_but_not_other_calls():
+    from app.tools import execute_tool
+
+    good = {"items_parameter": "subscription_details.items", "api_version": "2025-03-31.basil"}
+    for op in ("stripe.Invoice.create_preview", "Invoice.create_preview"):
+        assert execute_tool("check_migration_plan", json.dumps(dict(good, operation=op)))["ok"]
+    for op in ("invoice_preview", "Invoice.upcoming", "stripe.Invoice.create"):
+        assert not execute_tool("check_migration_plan", json.dumps(dict(good, operation=op)))["ok"]
