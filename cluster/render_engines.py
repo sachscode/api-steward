@@ -69,6 +69,10 @@ PROFILES["a100-single"] = {
     **PROFILES["a100"],
     "node_pool": {"prefill": "single", "decode": "single"},
     "ucx_devices": "all",
+    # Privileged pods (needed for the RDMA device) see every GPU on the host, so HAMi's
+    # assignment is not enforced and two TP=4 engines would both take GPUs 0-3. Pin them.
+    # decode-1 reuses 0-3 only in colocated/autoscale mode, when prefill-0 is off.
+    "pin": {("prefill", 0): "0,1,2,3", ("decode", 0): "4,5,6,7", ("decode", 1): "0,1,2,3", ("prefill", 1): "4,5,6,7"},
     "keda": {"prefill": 8, "decode": 48},
     "gateway": {**PROFILES["a100"]["gateway"], "node_pool": "single"},
 }
@@ -152,6 +156,11 @@ def engine(profile: dict, pool: str, slot: int, models: str, image: str) -> list
                                 {"name": "UCX_TLS", "value": "all"},
                                 {"name": "UCX_NET_DEVICES", "value": profile["ucx_devices"]},
                                 *({"name": k, "value": v} for k, v in profile.get("extra_env", {}).items()),
+                                *(
+                                    [{"name": "CUDA_VISIBLE_DEVICES", "value": profile["pin"][(pool, slot)]}]
+                                    if "pin" in profile
+                                    else []
+                                ),
                             ],
                             "ports": [{"containerPort": port, "name": "http"}],
                             "resources": {"limits": profile["gpu"]},
