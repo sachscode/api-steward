@@ -1,0 +1,15 @@
+load: [(90.0, 10.0)] (seconds, jobs/s) -> metrics/load/a100-noisy.jsonl
+phase 0: 10.0 jobs/s for 90 s
+submitted 941 jobs; waiting for the last ones to finish
+
+jobs by outcome:
+    327  batch:failed:tenant_tokens
+    279  interactive:analysis_complete:fixture_mapping_checked
+    214  batch:failed:tenant_concurrency
+    111  batch:analysis_complete:fixture_mapping_checked
+      9  interactive:failed:client_aborted
+      1  batch:failed:client_aborted
+
+step TTFT (s) by class/path:
+  batch/local            n=  494  p50=0.215  p90=0.343  p99=0.491
+  interactive/local      n= 1123  p50=0.176  p90=0.272  p99=0.379

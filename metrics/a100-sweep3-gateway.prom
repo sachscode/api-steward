@@ -1,0 +1,448 @@
+# HELP orch_requests_total Requests received
+# TYPE orch_requests_total counter
+orch_requests_total{klass="interactive",tenant="demo-b"} 4814.0
+orch_requests_total{klass="interactive",tenant="demo-a"} 4869.0
+orch_requests_total{klass="batch",tenant="sweep"} 4083.0
+# HELP orch_requests_created Requests received
+# TYPE orch_requests_created gauge
+orch_requests_created{klass="interactive",tenant="demo-b"} 1.7916066341996353e+09
+orch_requests_created{klass="interactive",tenant="demo-a"} 1.7916066342057207e+09
+orch_requests_created{klass="batch",tenant="sweep"} 1.7916066343418639e+09
+# HELP orch_shed_total Requests refused
+# TYPE orch_shed_total counter
+# HELP orch_completed_total Requests served
+# TYPE orch_completed_total counter
+orch_completed_total{klass="interactive",path="nixl"} 4946.0
+orch_completed_total{klass="batch",path="nixl"} 1984.0
+orch_completed_total{klass="interactive",path="local"} 4597.0
+orch_completed_total{klass="batch",path="local"} 2052.0
+# HELP orch_completed_created Requests served
+# TYPE orch_completed_created gauge
+orch_completed_created{klass="interactive",path="nixl"} 1.7916066345314827e+09
+orch_completed_created{klass="batch",path="nixl"} 1.7916066346862085e+09
+orch_completed_created{klass="interactive",path="local"} 1.7916066347465758e+09
+orch_completed_created{klass="batch",path="local"} 1.7916066367373464e+09
+# HELP orch_errors_total Engine or transport errors
+# TYPE orch_errors_total counter
+# HELP orch_aborted_total Client disconnects
+# TYPE orch_aborted_total counter
+orch_aborted_total{stage="decode"} 108.0
+orch_aborted_total{stage="prefill"} 27.0
+orch_aborted_total{stage="queue"} 52.0
+# HELP orch_aborted_created Client disconnects
+# TYPE orch_aborted_created gauge
+orch_aborted_created{stage="decode"} 1.7916066360270622e+09
+orch_aborted_created{stage="prefill"} 1.7916067000423198e+09
+orch_aborted_created{stage="queue"} 1.7916067095925398e+09
+# HELP orch_replica_queue_depth Requests waiting in the gateway queue
+# TYPE orch_replica_queue_depth gauge
+orch_replica_queue_depth{klass="interactive",pod="prefill-0",pool="prefill"} 0.0
+orch_replica_queue_depth{klass="batch",pod="prefill-0",pool="prefill"} 0.0
+orch_replica_queue_depth{klass="interactive",pod="prefill-1",pool="prefill"} 0.0
+orch_replica_queue_depth{klass="batch",pod="prefill-1",pool="prefill"} 0.0
+orch_replica_queue_depth{klass="interactive",pod="decode-0",pool="decode"} 0.0
+orch_replica_queue_depth{klass="batch",pod="decode-0",pool="decode"} 0.0
+orch_replica_queue_depth{klass="interactive",pod="decode-1",pool="decode"} 0.0
+orch_replica_queue_depth{klass="batch",pod="decode-1",pool="decode"} 0.0
+# HELP orch_replica_inflight Requests dispatched to the engine
+# TYPE orch_replica_inflight gauge
+orch_replica_inflight{pod="prefill-0",pool="prefill"} 0.0
+orch_replica_inflight{pod="prefill-1",pool="prefill"} 0.0
+orch_replica_inflight{pod="decode-0",pool="decode"} 0.0
+orch_replica_inflight{pod="decode-1",pool="decode"} 0.0
+# HELP orch_replica_slot_cap Dispatch slots (ramp-adjusted)
+# TYPE orch_replica_slot_cap gauge
+orch_replica_slot_cap{pod="prefill-0",pool="prefill"} 32.0
+orch_replica_slot_cap{pod="prefill-1",pool="prefill"} 1.0
+orch_replica_slot_cap{pod="decode-0",pool="decode"} 192.0
+orch_replica_slot_cap{pod="decode-1",pool="decode"} 1.0
+# HELP orch_replica_tokens_inflight KV tokens reserved by dispatched requests
+# TYPE orch_replica_tokens_inflight gauge
+orch_replica_tokens_inflight{pod="prefill-0",pool="prefill"} 0.0
+orch_replica_tokens_inflight{pod="prefill-1",pool="prefill"} 0.0
+orch_replica_tokens_inflight{pod="decode-0",pool="decode"} 0.0
+orch_replica_tokens_inflight{pod="decode-1",pool="decode"} 0.0
+# HELP orch_replica_token_cap KV token budget (vLLM blocks x block size x high water)
+# TYPE orch_replica_token_cap gauge
+orch_replica_token_cap{pod="prefill-0",pool="prefill"} 808186.0
+orch_replica_token_cap{pod="prefill-1",pool="prefill"} 0.0
+orch_replica_token_cap{pod="decode-0",pool="decode"} 808186.0
+orch_replica_token_cap{pod="decode-1",pool="decode"} 0.0
+# HELP orch_queue_wait_seconds Time in the gateway queue
+# TYPE orch_queue_wait_seconds histogram
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.01",pool="decode"} 6270.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.025",pool="decode"} 6279.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.05",pool="decode"} 6336.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.1",pool="decode"} 6769.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.25",pool="decode"} 7496.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.5",pool="decode"} 7950.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="1.0",pool="decode"} 8370.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="2.0",pool="decode"} 9068.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="4.0",pool="decode"} 9649.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="8.0",pool="decode"} 9649.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="16.0",pool="decode"} 9649.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="32.0",pool="decode"} 9649.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="64.0",pool="decode"} 9649.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="+Inf",pool="decode"} 9649.0
+orch_queue_wait_seconds_count{klass="interactive",pool="decode"} 9649.0
+orch_queue_wait_seconds_sum{klass="interactive",pool="decode"} 3237.7351903860217
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.01",pool="prefill"} 4554.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.025",pool="prefill"} 4556.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.05",pool="prefill"} 4584.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.1",pool="prefill"} 4756.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.25",pool="prefill"} 4954.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="0.5",pool="prefill"} 4995.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="1.0",pool="prefill"} 4997.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="2.0",pool="prefill"} 4997.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="4.0",pool="prefill"} 4997.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="8.0",pool="prefill"} 4997.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="16.0",pool="prefill"} 4997.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="32.0",pool="prefill"} 4997.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="64.0",pool="prefill"} 4997.0
+orch_queue_wait_seconds_bucket{klass="interactive",le="+Inf",pool="prefill"} 4997.0
+orch_queue_wait_seconds_count{klass="interactive",pool="prefill"} 4997.0
+orch_queue_wait_seconds_sum{klass="interactive",pool="prefill"} 56.85631050799293
+orch_queue_wait_seconds_bucket{klass="batch",le="0.01",pool="decode"} 2934.0
+orch_queue_wait_seconds_bucket{klass="batch",le="0.025",pool="decode"} 2937.0
+orch_queue_wait_seconds_bucket{klass="batch",le="0.05",pool="decode"} 2939.0
+orch_queue_wait_seconds_bucket{klass="batch",le="0.1",pool="decode"} 2948.0
+orch_queue_wait_seconds_bucket{klass="batch",le="0.25",pool="decode"} 2965.0
+orch_queue_wait_seconds_bucket{klass="batch",le="0.5",pool="decode"} 3009.0
+orch_queue_wait_seconds_bucket{klass="batch",le="1.0",pool="decode"} 3133.0
+orch_queue_wait_seconds_bucket{klass="batch",le="2.0",pool="decode"} 3284.0
+orch_queue_wait_seconds_bucket{klass="batch",le="4.0",pool="decode"} 3376.0
+orch_queue_wait_seconds_bucket{klass="batch",le="8.0",pool="decode"} 3676.0
+orch_queue_wait_seconds_bucket{klass="batch",le="16.0",pool="decode"} 4066.0
+orch_queue_wait_seconds_bucket{klass="batch",le="32.0",pool="decode"} 4066.0
+orch_queue_wait_seconds_bucket{klass="batch",le="64.0",pool="decode"} 4066.0
+orch_queue_wait_seconds_bucket{klass="batch",le="+Inf",pool="decode"} 4066.0
+orch_queue_wait_seconds_count{klass="batch",pool="decode"} 4066.0
+orch_queue_wait_seconds_sum{klass="batch",pool="decode"} 7151.891324437005
+orch_queue_wait_seconds_bucket{klass="batch",le="0.01",pool="prefill"} 1715.0
+orch_queue_wait_seconds_bucket{klass="batch",le="0.025",pool="prefill"} 1715.0
+orch_queue_wait_seconds_bucket{klass="batch",le="0.05",pool="prefill"} 1721.0
+orch_queue_wait_seconds_bucket{klass="batch",le="0.1",pool="prefill"} 1763.0
+orch_queue_wait_seconds_bucket{klass="batch",le="0.25",pool="prefill"} 1812.0
+orch_queue_wait_seconds_bucket{klass="batch",le="0.5",pool="prefill"} 1886.0
+orch_queue_wait_seconds_bucket{klass="batch",le="1.0",pool="prefill"} 1957.0
+orch_queue_wait_seconds_bucket{klass="batch",le="2.0",pool="prefill"} 1992.0
+orch_queue_wait_seconds_bucket{klass="batch",le="4.0",pool="prefill"} 1992.0
+orch_queue_wait_seconds_bucket{klass="batch",le="8.0",pool="prefill"} 1992.0
+orch_queue_wait_seconds_bucket{klass="batch",le="16.0",pool="prefill"} 1992.0
+orch_queue_wait_seconds_bucket{klass="batch",le="32.0",pool="prefill"} 1992.0
+orch_queue_wait_seconds_bucket{klass="batch",le="64.0",pool="prefill"} 1992.0
+orch_queue_wait_seconds_bucket{klass="batch",le="+Inf",pool="prefill"} 1992.0
+orch_queue_wait_seconds_count{klass="batch",pool="prefill"} 1992.0
+orch_queue_wait_seconds_sum{klass="batch",pool="prefill"} 132.45882129400707
+# HELP orch_queue_wait_seconds_created Time in the gateway queue
+# TYPE orch_queue_wait_seconds_created gauge
+orch_queue_wait_seconds_created{klass="interactive",pool="decode"} 1.7916066341999867e+09
+orch_queue_wait_seconds_created{klass="interactive",pool="prefill"} 1.7916066342000885e+09
+orch_queue_wait_seconds_created{klass="batch",pool="decode"} 1.791606634342095e+09
+orch_queue_wait_seconds_created{klass="batch",pool="prefill"} 1.7916066343422e+09
+# HELP orch_ttft_seconds Client-side time to first token
+# TYPE orch_ttft_seconds histogram
+orch_ttft_seconds_bucket{klass="interactive",le="0.01",path="nixl"} 0.0
+orch_ttft_seconds_bucket{klass="interactive",le="0.025",path="nixl"} 0.0
+orch_ttft_seconds_bucket{klass="interactive",le="0.05",path="nixl"} 0.0
+orch_ttft_seconds_bucket{klass="interactive",le="0.1",path="nixl"} 0.0
+orch_ttft_seconds_bucket{klass="interactive",le="0.25",path="nixl"} 19.0
+orch_ttft_seconds_bucket{klass="interactive",le="0.5",path="nixl"} 321.0
+orch_ttft_seconds_bucket{klass="interactive",le="1.0",path="nixl"} 1673.0
+orch_ttft_seconds_bucket{klass="interactive",le="2.0",path="nixl"} 3728.0
+orch_ttft_seconds_bucket{klass="interactive",le="4.0",path="nixl"} 4709.0
+orch_ttft_seconds_bucket{klass="interactive",le="8.0",path="nixl"} 4950.0
+orch_ttft_seconds_bucket{klass="interactive",le="16.0",path="nixl"} 4951.0
+orch_ttft_seconds_bucket{klass="interactive",le="32.0",path="nixl"} 4951.0
+orch_ttft_seconds_bucket{klass="interactive",le="64.0",path="nixl"} 4951.0
+orch_ttft_seconds_bucket{klass="interactive",le="+Inf",path="nixl"} 4951.0
+orch_ttft_seconds_count{klass="interactive",path="nixl"} 4951.0
+orch_ttft_seconds_sum{klass="interactive",path="nixl"} 8109.386927900986
+orch_ttft_seconds_bucket{klass="interactive",le="0.01",path="local"} 0.0
+orch_ttft_seconds_bucket{klass="interactive",le="0.025",path="local"} 0.0
+orch_ttft_seconds_bucket{klass="interactive",le="0.05",path="local"} 0.0
+orch_ttft_seconds_bucket{klass="interactive",le="0.1",path="local"} 15.0
+orch_ttft_seconds_bucket{klass="interactive",le="0.25",path="local"} 224.0
+orch_ttft_seconds_bucket{klass="interactive",le="0.5",path="local"} 1203.0
+orch_ttft_seconds_bucket{klass="interactive",le="1.0",path="local"} 3229.0
+orch_ttft_seconds_bucket{klass="interactive",le="2.0",path="local"} 3984.0
+orch_ttft_seconds_bucket{klass="interactive",le="4.0",path="local"} 4561.0
+orch_ttft_seconds_bucket{klass="interactive",le="8.0",path="local"} 4604.0
+orch_ttft_seconds_bucket{klass="interactive",le="16.0",path="local"} 4604.0
+orch_ttft_seconds_bucket{klass="interactive",le="32.0",path="local"} 4604.0
+orch_ttft_seconds_bucket{klass="interactive",le="64.0",path="local"} 4604.0
+orch_ttft_seconds_bucket{klass="interactive",le="+Inf",path="local"} 4604.0
+orch_ttft_seconds_count{klass="interactive",path="local"} 4604.0
+orch_ttft_seconds_sum{klass="interactive",path="local"} 4730.758445964994
+orch_ttft_seconds_bucket{klass="batch",le="0.01",path="nixl"} 0.0
+orch_ttft_seconds_bucket{klass="batch",le="0.025",path="nixl"} 0.0
+orch_ttft_seconds_bucket{klass="batch",le="0.05",path="nixl"} 0.0
+orch_ttft_seconds_bucket{klass="batch",le="0.1",path="nixl"} 0.0
+orch_ttft_seconds_bucket{klass="batch",le="0.25",path="nixl"} 6.0
+orch_ttft_seconds_bucket{klass="batch",le="0.5",path="nixl"} 114.0
+orch_ttft_seconds_bucket{klass="batch",le="1.0",path="nixl"} 659.0
+orch_ttft_seconds_bucket{klass="batch",le="2.0",path="nixl"} 1335.0
+orch_ttft_seconds_bucket{klass="batch",le="4.0",path="nixl"} 1546.0
+orch_ttft_seconds_bucket{klass="batch",le="8.0",path="nixl"} 1702.0
+orch_ttft_seconds_bucket{klass="batch",le="16.0",path="nixl"} 1899.0
+orch_ttft_seconds_bucket{klass="batch",le="32.0",path="nixl"} 1984.0
+orch_ttft_seconds_bucket{klass="batch",le="64.0",path="nixl"} 1984.0
+orch_ttft_seconds_bucket{klass="batch",le="+Inf",path="nixl"} 1984.0
+orch_ttft_seconds_count{klass="batch",path="nixl"} 1984.0
+orch_ttft_seconds_sum{klass="batch",path="nixl"} 6552.511381765003
+orch_ttft_seconds_bucket{klass="batch",le="0.01",path="local"} 0.0
+orch_ttft_seconds_bucket{klass="batch",le="0.025",path="local"} 0.0
+orch_ttft_seconds_bucket{klass="batch",le="0.05",path="local"} 0.0
+orch_ttft_seconds_bucket{klass="batch",le="0.1",path="local"} 4.0
+orch_ttft_seconds_bucket{klass="batch",le="0.25",path="local"} 91.0
+orch_ttft_seconds_bucket{klass="batch",le="0.5",path="local"} 560.0
+orch_ttft_seconds_bucket{klass="batch",le="1.0",path="local"} 1494.0
+orch_ttft_seconds_bucket{klass="batch",le="2.0",path="local"} 1623.0
+orch_ttft_seconds_bucket{klass="batch",le="4.0",path="local"} 1700.0
+orch_ttft_seconds_bucket{klass="batch",le="8.0",path="local"} 1842.0
+orch_ttft_seconds_bucket{klass="batch",le="16.0",path="local"} 2012.0
+orch_ttft_seconds_bucket{klass="batch",le="32.0",path="local"} 2055.0
+orch_ttft_seconds_bucket{klass="batch",le="64.0",path="local"} 2055.0
+orch_ttft_seconds_bucket{klass="batch",le="+Inf",path="local"} 2055.0
+orch_ttft_seconds_count{klass="batch",path="local"} 2055.0
+orch_ttft_seconds_sum{klass="batch",path="local"} 4667.165736161011
+# HELP orch_ttft_seconds_created Client-side time to first token
+# TYPE orch_ttft_seconds_created gauge
+orch_ttft_seconds_created{klass="interactive",path="nixl"} 1.791606634453072e+09
+orch_ttft_seconds_created{klass="interactive",path="local"} 1.7916066344697294e+09
+orch_ttft_seconds_created{klass="batch",path="nixl"} 1.7916066346050901e+09
+orch_ttft_seconds_created{klass="batch",path="local"} 1.791606636259392e+09
+# HELP orch_engine_ttft_seconds Dispatch to first token (excludes our queue)
+# TYPE orch_engine_ttft_seconds histogram
+orch_engine_ttft_seconds_bucket{le="0.01",pod="decode-0"} 0.0
+orch_engine_ttft_seconds_bucket{le="0.025",pod="decode-0"} 0.0
+orch_engine_ttft_seconds_bucket{le="0.05",pod="decode-0"} 0.0
+orch_engine_ttft_seconds_bucket{le="0.1",pod="decode-0"} 19.0
+orch_engine_ttft_seconds_bucket{le="0.25",pod="decode-0"} 340.0
+orch_engine_ttft_seconds_bucket{le="0.5",pod="decode-0"} 2248.0
+orch_engine_ttft_seconds_bucket{le="1.0",pod="decode-0"} 8167.0
+orch_engine_ttft_seconds_bucket{le="2.0",pod="decode-0"} 12786.0
+orch_engine_ttft_seconds_bucket{le="4.0",pod="decode-0"} 13559.0
+orch_engine_ttft_seconds_bucket{le="8.0",pod="decode-0"} 13594.0
+orch_engine_ttft_seconds_bucket{le="16.0",pod="decode-0"} 13594.0
+orch_engine_ttft_seconds_bucket{le="32.0",pod="decode-0"} 13594.0
+orch_engine_ttft_seconds_bucket{le="64.0",pod="decode-0"} 13594.0
+orch_engine_ttft_seconds_bucket{le="+Inf",pod="decode-0"} 13594.0
+orch_engine_ttft_seconds_count{pod="decode-0"} 13594.0
+orch_engine_ttft_seconds_sum{pod="decode-0"} 13669.11602789797
+# HELP orch_engine_ttft_seconds_created Dispatch to first token (excludes our queue)
+# TYPE orch_engine_ttft_seconds_created gauge
+orch_engine_ttft_seconds_created{pod="decode-0"} 1.7916066344531612e+09
+# HELP orch_e2e_seconds Client-side end to end
+# TYPE orch_e2e_seconds histogram
+orch_e2e_seconds_bucket{klass="interactive",le="0.01",path="nixl"} 0.0
+orch_e2e_seconds_bucket{klass="interactive",le="0.025",path="nixl"} 0.0
+orch_e2e_seconds_bucket{klass="interactive",le="0.05",path="nixl"} 0.0
+orch_e2e_seconds_bucket{klass="interactive",le="0.1",path="nixl"} 0.0
+orch_e2e_seconds_bucket{klass="interactive",le="0.25",path="nixl"} 0.0
+orch_e2e_seconds_bucket{klass="interactive",le="0.5",path="nixl"} 31.0
+orch_e2e_seconds_bucket{klass="interactive",le="1.0",path="nixl"} 471.0
+orch_e2e_seconds_bucket{klass="interactive",le="2.0",path="nixl"} 2091.0
+orch_e2e_seconds_bucket{klass="interactive",le="4.0",path="nixl"} 3390.0
+orch_e2e_seconds_bucket{klass="interactive",le="8.0",path="nixl"} 4367.0
+orch_e2e_seconds_bucket{klass="interactive",le="16.0",path="nixl"} 4946.0
+orch_e2e_seconds_bucket{klass="interactive",le="32.0",path="nixl"} 4946.0
+orch_e2e_seconds_bucket{klass="interactive",le="64.0",path="nixl"} 4946.0
+orch_e2e_seconds_bucket{klass="interactive",le="+Inf",path="nixl"} 4946.0
+orch_e2e_seconds_count{klass="interactive",path="nixl"} 4946.0
+orch_e2e_seconds_sum{klass="interactive",path="nixl"} 17845.374221164973
+orch_e2e_seconds_bucket{klass="batch",le="0.01",path="nixl"} 0.0
+orch_e2e_seconds_bucket{klass="batch",le="0.025",path="nixl"} 0.0
+orch_e2e_seconds_bucket{klass="batch",le="0.05",path="nixl"} 0.0
+orch_e2e_seconds_bucket{klass="batch",le="0.1",path="nixl"} 0.0
+orch_e2e_seconds_bucket{klass="batch",le="0.25",path="nixl"} 0.0
+orch_e2e_seconds_bucket{klass="batch",le="0.5",path="nixl"} 4.0
+orch_e2e_seconds_bucket{klass="batch",le="1.0",path="nixl"} 168.0
+orch_e2e_seconds_bucket{klass="batch",le="2.0",path="nixl"} 773.0
+orch_e2e_seconds_bucket{klass="batch",le="4.0",path="nixl"} 1160.0
+orch_e2e_seconds_bucket{klass="batch",le="8.0",path="nixl"} 1548.0
+orch_e2e_seconds_bucket{klass="batch",le="16.0",path="nixl"} 1841.0
+orch_e2e_seconds_bucket{klass="batch",le="32.0",path="nixl"} 1984.0
+orch_e2e_seconds_bucket{klass="batch",le="64.0",path="nixl"} 1984.0
+orch_e2e_seconds_bucket{klass="batch",le="+Inf",path="nixl"} 1984.0
+orch_e2e_seconds_count{klass="batch",path="nixl"} 1984.0
+orch_e2e_seconds_sum{klass="batch",path="nixl"} 10358.25780685397
+orch_e2e_seconds_bucket{klass="interactive",le="0.01",path="local"} 0.0
+orch_e2e_seconds_bucket{klass="interactive",le="0.025",path="local"} 0.0
+orch_e2e_seconds_bucket{klass="interactive",le="0.05",path="local"} 0.0
+orch_e2e_seconds_bucket{klass="interactive",le="0.1",path="local"} 0.0
+orch_e2e_seconds_bucket{klass="interactive",le="0.25",path="local"} 0.0
+orch_e2e_seconds_bucket{klass="interactive",le="0.5",path="local"} 63.0
+orch_e2e_seconds_bucket{klass="interactive",le="1.0",path="local"} 862.0
+orch_e2e_seconds_bucket{klass="interactive",le="2.0",path="local"} 2706.0
+orch_e2e_seconds_bucket{klass="interactive",le="4.0",path="local"} 3306.0
+orch_e2e_seconds_bucket{klass="interactive",le="8.0",path="local"} 3983.0
+orch_e2e_seconds_bucket{klass="interactive",le="16.0",path="local"} 4597.0
+orch_e2e_seconds_bucket{klass="interactive",le="32.0",path="local"} 4597.0
+orch_e2e_seconds_bucket{klass="interactive",le="64.0",path="local"} 4597.0
+orch_e2e_seconds_bucket{klass="interactive",le="+Inf",path="local"} 4597.0
+orch_e2e_seconds_count{klass="interactive",path="local"} 4597.0
+orch_e2e_seconds_sum{klass="interactive",path="local"} 15186.01626410899
+orch_e2e_seconds_bucket{klass="batch",le="0.01",path="local"} 0.0
+orch_e2e_seconds_bucket{klass="batch",le="0.025",path="local"} 0.0
+orch_e2e_seconds_bucket{klass="batch",le="0.05",path="local"} 0.0
+orch_e2e_seconds_bucket{klass="batch",le="0.1",path="local"} 0.0
+orch_e2e_seconds_bucket{klass="batch",le="0.25",path="local"} 0.0
+orch_e2e_seconds_bucket{klass="batch",le="0.5",path="local"} 15.0
+orch_e2e_seconds_bucket{klass="batch",le="1.0",path="local"} 407.0
+orch_e2e_seconds_bucket{klass="batch",le="2.0",path="local"} 1154.0
+orch_e2e_seconds_bucket{klass="batch",le="4.0",path="local"} 1272.0
+orch_e2e_seconds_bucket{klass="batch",le="8.0",path="local"} 1618.0
+orch_e2e_seconds_bucket{klass="batch",le="16.0",path="local"} 1946.0
+orch_e2e_seconds_bucket{klass="batch",le="32.0",path="local"} 2052.0
+orch_e2e_seconds_bucket{klass="batch",le="64.0",path="local"} 2052.0
+orch_e2e_seconds_bucket{klass="batch",le="+Inf",path="local"} 2052.0
+orch_e2e_seconds_count{klass="batch",path="local"} 2052.0
+orch_e2e_seconds_sum{klass="batch",path="local"} 9264.138847804037
+# HELP orch_e2e_seconds_created Client-side end to end
+# TYPE orch_e2e_seconds_created gauge
+orch_e2e_seconds_created{klass="interactive",path="nixl"} 1.7916066345314274e+09
+orch_e2e_seconds_created{klass="batch",path="nixl"} 1.7916066346860836e+09
+orch_e2e_seconds_created{klass="interactive",path="local"} 1.7916066347465167e+09
+orch_e2e_seconds_created{klass="batch",path="local"} 1.7916066367372913e+09
+# HELP orch_prefill_seconds Remote prefill call (max_tokens=1)
+# TYPE orch_prefill_seconds histogram
+orch_prefill_seconds_bucket{le="0.01",pod="prefill-0"} 0.0
+orch_prefill_seconds_bucket{le="0.025",pod="prefill-0"} 0.0
+orch_prefill_seconds_bucket{le="0.05",pod="prefill-0"} 66.0
+orch_prefill_seconds_bucket{le="0.1",pod="prefill-0"} 501.0
+orch_prefill_seconds_bucket{le="0.25",pod="prefill-0"} 2580.0
+orch_prefill_seconds_bucket{le="0.5",pod="prefill-0"} 4615.0
+orch_prefill_seconds_bucket{le="1.0",pod="prefill-0"} 6075.0
+orch_prefill_seconds_bucket{le="2.0",pod="prefill-0"} 6794.0
+orch_prefill_seconds_bucket{le="4.0",pod="prefill-0"} 6955.0
+orch_prefill_seconds_bucket{le="8.0",pod="prefill-0"} 6962.0
+orch_prefill_seconds_bucket{le="16.0",pod="prefill-0"} 6962.0
+orch_prefill_seconds_bucket{le="32.0",pod="prefill-0"} 6962.0
+orch_prefill_seconds_bucket{le="64.0",pod="prefill-0"} 6962.0
+orch_prefill_seconds_bucket{le="+Inf",pod="prefill-0"} 6962.0
+orch_prefill_seconds_count{pod="prefill-0"} 6962.0
+orch_prefill_seconds_sum{pod="prefill-0"} 3585.510281552991
+# HELP orch_prefill_seconds_created Remote prefill call (max_tokens=1)
+# TYPE orch_prefill_seconds_created gauge
+orch_prefill_seconds_created{pod="prefill-0"} 1.7916066342504108e+09
+# HELP orch_hop_decision_total Hop or no hop, and why
+# TYPE orch_hop_decision_total counter
+orch_hop_decision_total{decision="nixl",reason="long_uncached_prompt"} 7016.0
+orch_hop_decision_total{decision="local",reason="prefill_pool_empty"} 1764.0
+orch_hop_decision_total{decision="local",reason="decode_has_prefix"} 4986.0
+# HELP orch_hop_decision_created Hop or no hop, and why
+# TYPE orch_hop_decision_created gauge
+orch_hop_decision_created{decision="nixl",reason="long_uncached_prompt"} 1.7916066341998441e+09
+orch_hop_decision_created{decision="local",reason="prefill_pool_empty"} 1.7916066342754235e+09
+orch_hop_decision_created{decision="local",reason="decode_has_prefix"} 1.7916066347535887e+09
+# HELP orch_hop_total KV hops requested
+# TYPE orch_hop_total counter
+orch_hop_total{backend="nixl",dst="decode-0",src="prefill-0"} 6962.0
+# HELP orch_hop_created KV hops requested
+# TYPE orch_hop_created gauge
+orch_hop_created{backend="nixl",dst="decode-0",src="prefill-0"} 1.791606634250494e+09
+# HELP orch_hop_tokens_total Prompt tokens moved by hops
+# TYPE orch_hop_tokens_total counter
+orch_hop_tokens_total{dst="decode-0",src="prefill-0"} 9.549379e+06
+# HELP orch_hop_tokens_created Prompt tokens moved by hops
+# TYPE orch_hop_tokens_created gauge
+orch_hop_tokens_created{dst="decode-0",src="prefill-0"} 1.7916066342505095e+09
+# HELP orch_hop_bytes_estimated_total blocks x block_size x kv_bytes_per_token
+# TYPE orch_hop_bytes_estimated_total counter
+orch_hop_bytes_estimated_total{dst="decode-0",src="prefill-0"} 9.43831646208e+11
+# HELP orch_hop_bytes_estimated_created blocks x block_size x kv_bytes_per_token
+# TYPE orch_hop_bytes_estimated_created gauge
+orch_hop_bytes_estimated_created{dst="decode-0",src="prefill-0"} 1.7916066342505233e+09
+# HELP orch_pick_total Placement decisions
+# TYPE orch_pick_total counter
+orch_pick_total{pod="decode-0",policy="p2c",pool="decode",why="load"} 3584.0
+orch_pick_total{pod="prefill-0",policy="prefix_then_load",pool="prefill",why="prefix_affinity"} 6806.0
+orch_pick_total{pod="decode-0",policy="p2c",pool="decode",why="job_affinity"} 10182.0
+orch_pick_total{pod="prefill-0",policy="prefix_then_load",pool="prefill",why="job_affinity"} 5196.0
+# HELP orch_pick_created Placement decisions
+# TYPE orch_pick_created gauge
+orch_pick_created{pod="decode-0",policy="p2c",pool="decode",why="load"} 1.7916066341997674e+09
+orch_pick_created{pod="prefill-0",policy="prefix_then_load",pool="prefill",why="prefix_affinity"} 1.7916066341998227e+09
+orch_pick_created{pod="decode-0",policy="p2c",pool="decode",why="job_affinity"} 1.7916066345350966e+09
+orch_pick_created{pod="prefill-0",policy="prefix_then_load",pool="prefill",why="job_affinity"} 1.7916066345351632e+09
+# HELP orch_unknown_snapshot_total Placed on a stale snapshot
+# TYPE orch_unknown_snapshot_total counter
+orch_unknown_snapshot_total{pool="prefill"} 86.0
+# HELP orch_unknown_snapshot_created Placed on a stale snapshot
+# TYPE orch_unknown_snapshot_created gauge
+orch_unknown_snapshot_created{pool="prefill"} 1.7916067128483725e+09
+# HELP orch_snapshot_age_seconds Age of the engine snapshot
+# TYPE orch_snapshot_age_seconds gauge
+orch_snapshot_age_seconds{pod="prefill-1"} 3600.0
+orch_snapshot_age_seconds{pod="decode-1"} 3600.0
+orch_snapshot_age_seconds{pod="prefill-0"} 2.907999987655785e-05
+orch_snapshot_age_seconds{pod="decode-0"} 1.9240000256104395e-05
+# HELP orch_replica_up Last scrape succeeded
+# TYPE orch_replica_up gauge
+orch_replica_up{pod="prefill-1",pool="prefill"} 0.0
+orch_replica_up{pod="decode-1",pool="decode"} 0.0
+orch_replica_up{pod="prefill-0",pool="prefill"} 1.0
+orch_replica_up{pod="decode-0",pool="decode"} 1.0
+# HELP orch_replica_warm_state 0 cold, 1 warming, 2 ramping, 3 warm
+# TYPE orch_replica_warm_state gauge
+orch_replica_warm_state{pod="prefill-0",pool="prefill"} 3.0
+orch_replica_warm_state{pod="decode-0",pool="decode"} 3.0
+# HELP orch_replica_ramp_weight Share of slots open
+# TYPE orch_replica_ramp_weight gauge
+orch_replica_ramp_weight{pod="prefill-0",pool="prefill"} 1.0
+orch_replica_ramp_weight{pod="decode-0",pool="decode"} 1.0
+# HELP orch_warmup_ttft_seconds TTFT of warmup requests
+# TYPE orch_warmup_ttft_seconds histogram
+orch_warmup_ttft_seconds_bucket{le="0.01",pod="prefill-0"} 0.0
+orch_warmup_ttft_seconds_bucket{le="0.025",pod="prefill-0"} 0.0
+orch_warmup_ttft_seconds_bucket{le="0.05",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="0.1",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="0.25",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="0.5",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="1.0",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="2.0",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="4.0",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="8.0",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="16.0",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="32.0",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="64.0",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="+Inf",pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_count{pod="prefill-0"} 3.0
+orch_warmup_ttft_seconds_sum{pod="prefill-0"} 0.1323547839992898
+orch_warmup_ttft_seconds_bucket{le="0.01",pod="decode-0"} 0.0
+orch_warmup_ttft_seconds_bucket{le="0.025",pod="decode-0"} 0.0
+orch_warmup_ttft_seconds_bucket{le="0.05",pod="decode-0"} 2.0
+orch_warmup_ttft_seconds_bucket{le="0.1",pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="0.25",pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="0.5",pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="1.0",pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="2.0",pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="4.0",pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="8.0",pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="16.0",pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="32.0",pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="64.0",pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_bucket{le="+Inf",pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_count{pod="decode-0"} 3.0
+orch_warmup_ttft_seconds_sum{pod="decode-0"} 0.14871997199952602
+# HELP orch_warmup_ttft_seconds_created TTFT of warmup requests
+# TYPE orch_warmup_ttft_seconds_created gauge
+orch_warmup_ttft_seconds_created{pod="prefill-0"} 1.7916066196630807e+09
+orch_warmup_ttft_seconds_created{pod="decode-0"} 1.7916066196773517e+09
+# HELP orch_tenant_tokens_window Tokens admitted in the window
+# TYPE orch_tenant_tokens_window gauge
+orch_tenant_tokens_window{tenant="demo-b"} 615372.0
+orch_tenant_tokens_window{tenant="demo-a"} 592470.0
+orch_tenant_tokens_window{tenant="sweep"} 555591.0
+# HELP orch_tenant_inflight Tenant requests in flight
+# TYPE orch_tenant_inflight gauge
+orch_tenant_inflight{tenant="demo-b"} 0.0
+orch_tenant_inflight{tenant="demo-a"} 0.0
+orch_tenant_inflight{tenant="sweep"} 0.0
+# HELP orch_tokens_in_flight Estimated tokens queued or running
+# TYPE orch_tokens_in_flight gauge
+# HELP orch_overflow_total Overflow attempts
+# TYPE orch_overflow_total counter
+# HELP orch_affinity_evictions_total Prefix/job affinity entries dropped
+# TYPE orch_affinity_evictions_total counter

@@ -1,0 +1,8 @@
+{
+  "name": "autoscale",
+  "phases": "60:4,120:20,60:4",
+  "start": 1791607579,
+  "end": 1791607842,
+  "mode": "autoscale",
+  "loadgen_args": ""
+}

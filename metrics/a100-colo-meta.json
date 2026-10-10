@@ -1,0 +1,8 @@
+{
+  "name": "colo",
+  "phases": "60:12,60:20,60:28",
+  "start": 1791607189,
+  "end": 1791607401,
+  "mode": "colocated",
+  "loadgen_args": ""
+}

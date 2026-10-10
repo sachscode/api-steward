@@ -1,0 +1,8 @@
+{
+  "name": "sweep3",
+  "phases": "60:12,60:20,60:28",
+  "start": 1791606634,
+  "end": 1791606908,
+  "mode": "pd",
+  "loadgen_args": ""
+}

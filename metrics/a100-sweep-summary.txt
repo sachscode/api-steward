@@ -1,0 +1,20 @@
+load: [(60.0, 2.0), (60.0, 6.0), (60.0, 12.0), (60.0, 20.0)] (seconds, jobs/s) -> metrics/load/a100-sweep.jsonl
+phase 0: 2.0 jobs/s for 60 s
+phase 1: 6.0 jobs/s for 60 s
+phase 2: 12.0 jobs/s for 60 s
+phase 3: 20.0 jobs/s for 60 s
+submitted 2413 jobs; waiting for the last ones to finish
+
+jobs by outcome:
+    877  interactive:failed:tenant_tokens
+    773  interactive:incomplete:missing_tool_evidence
+    347  batch:incomplete:missing_tool_evidence
+    337  batch:failed:tenant_tokens
+     58  interactive:failed:client_aborted
+     21  batch:failed:client_aborted
+
+step TTFT (s) by class/path:
+  batch/local            n=  782  p50=0.273  p90=0.603  p99=2.353
+  batch/nixl             n=  749  p50=0.567  p90=3.401  p99=6.611
+  interactive/local      n= 1707  p50=0.279  p90=0.658  p99=0.984
+  interactive/nixl       n= 1699  p50=0.527  p90=1.150  p99=1.548

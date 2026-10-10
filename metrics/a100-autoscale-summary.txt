@@ -1,0 +1,16 @@
+load: [(60.0, 4.0), (120.0, 20.0), (60.0, 4.0)] (seconds, jobs/s) -> metrics/load/a100-autoscale.jsonl
+phase 0: 4.0 jobs/s for 60 s
+phase 1: 20.0 jobs/s for 120 s
+phase 2: 4.0 jobs/s for 60 s
+submitted 2870 jobs; waiting for the last ones to finish
+
+jobs by outcome:
+   1901  interactive:analysis_complete:fixture_mapping_checked
+    659  batch:analysis_complete:fixture_mapping_checked
+    169  batch:failed:tenant_concurrency
+    116  interactive:failed:client_aborted
+     25  batch:failed:client_aborted
+
+step TTFT (s) by class/path:
+  batch/local            n= 2727  p50=15.971  p90=16.694  p99=17.278
+  interactive/local      n= 7610  p50=3.451  p90=5.709  p99=7.955

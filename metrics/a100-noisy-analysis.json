@@ -1,0 +1,105 @@
+{
+  "meta": {
+    "name": "noisy",
+    "phases": "90:10",
+    "start": 1791608255,
+    "end": 1791608349,
+    "mode": "autoscale",
+    "loadgen_args": "--interactive 0.3"
+  },
+  "steps": [
+    {
+      "rate": 10.0,
+      "jobs": 941,
+      "done_pct": 41.4,
+      "calls": 1617,
+      "ttft_p50": 0.188,
+      "ttft_p99": 0.437,
+      "qwait_p50": 0.0,
+      "qwait_p99": 0.0,
+      "job_p50": 6.32
+    }
+  ],
+  "resources": {
+    "peak vLLM running": {
+      "vllm-decode-0": 43.0
+    },
+    "peak vLLM waiting": {
+      "vllm-decode-0": 0.0
+    },
+    "peak KV used (0-1)": {
+      "vllm-decode-0": 0.0327
+    },
+    "preemptions": {
+      "vllm-decode-0": 0.0
+    },
+    "peak our queue": {
+      "prefill-0": 0.0,
+      "prefill-1": 0.0,
+      "decode-0": 0.0,
+      "decode-1": 0.0
+    },
+    "peak slots in use": {
+      "prefill-0": 0.0,
+      "prefill-1": 0.0,
+      "decode-0": 37.0,
+      "decode-1": 0.0
+    },
+    "slot cap": {
+      "prefill-0": 1.0,
+      "prefill-1": 1.0,
+      "decode-0": 192.0,
+      "decode-1": 1.0
+    },
+    "peak KV tokens reserved": {
+      "prefill-0": 0.0,
+      "prefill-1": 0.0,
+      "decode-0": 84116.0,
+      "decode-1": 0.0
+    },
+    "KV token budget": {
+      "prefill-0": 0.0,
+      "prefill-1": 0.0,
+      "decode-0": 808186.0,
+      "decode-1": 0.0
+    },
+    "mean ITL (s)": {
+      "vllm-decode-0": 0.0158
+    },
+    "mean engine TTFT (s)": {
+      "vllm-decode-0": 0.0709
+    },
+    "generated tokens/s": {
+      "vllm-decode-0": 1637.5867
+    },
+    "prompt tokens/s": {
+      "vllm-decode-0": 19799.2133
+    },
+    "prefix cache hit rate": {
+      "vllm-decode-0": 0.8624
+    },
+    "NIXL GB moved": {
+      "vllm-decode-0": 0.0
+    },
+    "GPU util avg (%)": {
+      "gpu0": 0.0,
+      "gpu1": 0.0,
+      "gpu2": 0.0,
+      "gpu3": 0.0,
+      "gpu4": 70.8571,
+      "gpu5": 76.2857,
+      "gpu6": 70.0,
+      "gpu7": 71.2857
+    },
+    "tensor active avg (0-1)": {
+      "gpu0": 0.0,
+      "gpu1": 0.0,
+      "gpu2": 0.0,
+      "gpu3": 0.0,
+      "gpu4": 0.0413,
+      "gpu5": 0.0414,
+      "gpu6": 0.0413,
+      "gpu7": 0.0413
+    }
+  }
+}

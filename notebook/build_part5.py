@@ -297,13 +297,14 @@ real system prompt and tool schema, then its slots open 25 % → 50 % → 100 %,
 holding a step while the engine's own p99 TTFT (dispatch → first token) breaks the SLO. An engine
 process that has been up for more than 5 minutes skips the ramp after a gateway restart.
 
-Below: the KEDA scale-out of `decode-1` during the dashboard run, and the before/after of the
-ramp fix. The first stress run fed client TTFT (which included our queue) into the ramp, and held
+Below: a KEDA scale-out of `decode-1` (`NB_SCALE_RUN`), and a before/after comparison of two runs
+(`NB_COMPARE`). On the A10 the comparison is the ramp fix: the first stress run fed client TTFT
+(which included our queue) into the ramp, and held
 `decode-0` at 25 % while its own queue grew.
 """)
 
 code("""
-dash = nb.load_run("a10-dash"); ds, de = nb.run_window(dash)
+dash = nb.load_run(os.environ.get("NB_SCALE_RUN", "a10-dash")); ds, de = nb.run_window(dash)
 warm = nb.prom_range("orch_replica_warm_state", ds, de, "15s", label="pod")
 weight = nb.prom_range("orch_replica_ramp_weight", ds, de, "15s", label="pod")
 reps = nb.prom_range('kube_deployment_status_replicas_available{deployment=~"vllm-decode-.*"}', ds, de, "15s",
@@ -314,7 +315,7 @@ weight.plot(ax=axes[2], title="Ramp weight (share of slots)")
 for ax in axes: ax.set_xlabel("")
 nb.save(fig, f"{TAG}-scale-out-warm-ramp")
 cmp = []
-for run in ("a10-stress", "a10-stress-2"):
+for run in os.environ.get("NB_COMPARE", "a10-stress,a10-stress-2").split(","):
     s = nb.steps(nb.load_run(run)).dropna(subset=["ttft_s"])
     for k, g in s.groupby("klass"):
         cmp.append({"run": run, "klass": k, "calls": len(g), "ttft p50": g.ttft_s.median(),

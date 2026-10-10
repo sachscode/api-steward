@@ -1,0 +1,127 @@
+{
+  "meta": {
+    "name": "autoscale",
+    "phases": "60:4,120:20,60:4",
+    "start": 1791607579,
+    "end": 1791607842,
+    "mode": "autoscale",
+    "loadgen_args": ""
+  },
+  "steps": [
+    {
+      "rate": 4.0,
+      "jobs": 255,
+      "done_pct": 95.7,
+      "calls": 984,
+      "ttft_p50": 0.171,
+      "ttft_p99": 0.313,
+      "qwait_p50": 0.0,
+      "qwait_p99": 0.0,
+      "job_p50": 5.58
+    },
+    {
+      "rate": 20.0,
+      "jobs": 2374,
+      "done_pct": 89.2,
+      "calls": 8561,
+      "ttft_p50": 4.175,
+      "ttft_p99": 16.997,
+      "qwait_p50": 3.098,
+      "qwait_p99": 15.626,
+      "job_p50": 29.59
+    },
+    {
+      "rate": 4.0,
+      "jobs": 241,
+      "done_pct": 82.2,
+      "calls": 792,
+      "ttft_p50": 3.808,
+      "ttft_p99": 16.549,
+      "qwait_p50": 2.64,
+      "qwait_p99": 15.199,
+      "job_p50": 27.17
+    }
+  ],
+  "resources": {
+    "peak vLLM running": {
+      "vllm-decode-0": 191.0
+    },
+    "peak vLLM waiting": {
+      "vllm-decode-0": 26.0
+    },
+    "peak KV used (0-1)": {
+      "vllm-decode-0": 0.1583
+    },
+    "preemptions": {
+      "vllm-decode-0": 0.0
+    },
+    "peak our queue": {
+      "prefill-0": 0.0,
+      "prefill-1": 0.0,
+      "decode-0": 320.0,
+      "decode-1": 0.0
+    },
+    "peak slots in use": {
+      "prefill-0": 0.0,
+      "prefill-1": 0.0,
+      "decode-0": 192.0,
+      "decode-1": 0.0
+    },
+    "slot cap": {
+      "prefill-0": 1.0,
+      "prefill-1": 1.0,
+      "decode-0": 192.0,
+      "decode-1": 1.0
+    },
+    "peak KV tokens reserved": {
+      "prefill-0": 0.0,
+      "prefill-1": 0.0,
+      "decode-0": 445485.0,
+      "decode-1": 0.0
+    },
+    "KV token budget": {
+      "prefill-0": 0.0,
+      "prefill-1": 0.0,
+      "decode-0": 808186.0,
+      "decode-1": 0.0
+    },
+    "mean ITL (s)": {
+      "vllm-decode-0": 0.0334
+    },
+    "mean engine TTFT (s)": {
+      "vllm-decode-0": 0.3968
+    },
+    "generated tokens/s": {
+      "vllm-decode-0": 3723.2125
+    },
+    "prompt tokens/s": {
+      "vllm-decode-0": 47783.0667
+    },
+    "prefix cache hit rate": {
+      "vllm-decode-0": 0.8603
+    },
+    "NIXL GB moved": {
+      "vllm-decode-0": 0.0
+    },
+    "GPU util avg (%)": {
+      "gpu0": 0.1111,
+      "gpu1": 0.6667,
+      "gpu2": 0.4444,
+      "gpu3": 0.2222,
+      "gpu4": 89.3333,
+      "gpu5": 92.4444,
+      "gpu6": 90.3333,
+      "gpu7": 91.4444
+    },
+    "tensor active avg (0-1)": {
+      "gpu0": 0.0,
+      "gpu1": 0.0,
+      "gpu2": 0.0,
+      "gpu3": 0.0,
+      "gpu4": 0.1423,
+      "gpu5": 0.1423,
+      "gpu6": 0.1423,
+      "gpu7": 0.1424
+    }
+  }
+}

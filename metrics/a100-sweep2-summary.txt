@@ -1,0 +1,19 @@
+load: [(60.0, 2.0), (60.0, 6.0), (60.0, 12.0), (60.0, 20.0)] (seconds, jobs/s) -> metrics/load/a100-sweep2.jsonl
+phase 0: 2.0 jobs/s for 60 s
+phase 1: 6.0 jobs/s for 60 s
+phase 2: 12.0 jobs/s for 60 s
+phase 3: 20.0 jobs/s for 60 s
+submitted 2394 jobs; waiting for the last ones to finish
+
+jobs by outcome:
+   1599  interactive:analysis_complete:fixture_mapping_checked
+    660  batch:analysis_complete:fixture_mapping_checked
+     96  interactive:failed:client_aborted
+     29  batch:failed:client_aborted
+     10  batch:failed:tenant_concurrency
+
+step TTFT (s) by class/path:
+  batch/local            n= 1357  p50=0.453  p90=15.511  p99=15.792
+  batch/nixl             n= 1288  p50=0.842  p90=22.400  p99=29.689
+  interactive/local      n= 3152  p50=0.499  p90=2.082  p99=3.088
+  interactive/nixl       n= 3247  p50=0.790  p90=3.024  p99=3.668

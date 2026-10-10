@@ -1,0 +1,8 @@
+{
+  "name": "noisy",
+  "phases": "90:10",
+  "start": 1791608255,
+  "end": 1791608349,
+  "mode": "autoscale",
+  "loadgen_args": "--interactive 0.3"
+}
