@@ -66,8 +66,8 @@ max_concurrent_seqs at 32,768 tokens = 26;  at the app's ~1,800 tokens = 480
 | Sequences at 32k | 26 | **26.81** |
 
 **Hypothesis:** at the app's length the scheduler (`max_num_seqs` 256) binds before KV (~480).
-**Result: wrong, and instructively.** KV never exceeded **15 %** and vLLM never ran more than
-**172** sequences. The first limiter was **my gateway's prefill dispatch cap**, then **decode slots
+**Result: wrong, and instructively.** KV peaked at about **16 %** (15.8 %, autoscale burst) and vLLM
+never ran more than **191** sequences (172 in the split sweep). The first limiter was **my gateway's prefill dispatch cap**, then **decode slots
 and decode GPU time** (Part 8). Switching model from 0.6 B (A10) to 30B-A3B changed bytes/token
 from 114,688 to 98,304: the MoE has fewer layers and KV heads per token despite 50× the weights.
 
@@ -125,7 +125,7 @@ Answered with scrapes in `notebook/part5_queues_a100.ipynb` (and the A10 run in
 * **Our queue vs vLLM's waiting queue.** Each engine has dispatch slots and a KV token budget in
   the gateway. Under load our queue peaked at **236** on decode-0 while vLLM's waiting peaked at
   **8** (`plots/a100-queue-ours-vs-vllm.png`).
-* **Waiting / running / preempted.** Running peaked at 172 of 256; **0 preemptions in every A100
+* **Waiting / running / preempted.** Running peaked at 191 of 256 (172 in the split sweep); **0 preemptions in every A100
   run**.
 * **`orch_replica_queue_depth` by pod and mix.** `plots/a100-queue-depth-by-pod.png`; batch waits
   15 s (aging promotion) while interactive waits ~1-2 s at overload.
@@ -196,7 +196,7 @@ Experiments run with `cluster/experiment.sh`, summarised by `cluster/analyze_run
 | --- | --- | --- |
 | E5a | Hop vs local recompute, 0.5k-25k fresh tokens, one at a time (`a100-hop-probe.json`) | The full split path (remote prefill + transfer + first token) was slower than local prefill at every size (1.5-2.3×). The transfer + receiver first token alone (0.67 s at 25k) beat recompute (1.25 s), so KV that already exists can be worth moving; not tested. NIXL ~4.5 GB/s; the transfer adds ~44 % to prefill time because prefill makes KV at ~2 GB/s (20k tokens/s × 96 KiB). |
 | E3 | Load sweep, P/D split (`sweep2`, `sweep3`) | At 20 jobs/s, prefill cap 8: TTFT p50 2.0 s, p99 27 s, prefill queue 65, decode queue 277, 120 sequences in vLLM. Cap 32 at the same rate: p50 1.1 s, p99 17 s, prefill queue 12, 172 sequences; the limit moves to decode slots/GPU. (Run-average GPU figures mix different load steps; compare the 20 jobs/s step.) Knee ≈ 12 jobs/s (TTFT p99 1.0 s). |
-| E4 | P/D vs colocated, same 8 GPUs (`sweep3` vs `colo`) | Per-call gateway TTFT p99 at the 20 jobs/s target **16.7 s split vs 1.23 s colocated**; completed-job median 29.0 s vs 12.1 s; same ITL (24.4 vs 24.8 ms). Highest step within a 2 s p99: split 12/s target (12.5 started), colocated 20/s (19.9 started). Estimated cost at those steps **$0.36 vs $0.22 per 1,000 jobs** ($15.92/h, from arrival rates, not measured per completed migration); the split's capacity is between 12.5 and 18.5/s, so 1.1-1.6× per job. The load generator (256 threads, start stamped when a thread frees up) fell behind under overload: started 18.5 vs 19.9/s at the 20 target and 13.7 vs 22.2/s at 28, so the 28 step is not like-for-like and overload latency is understated. |
+| E4 | P/D vs colocated, same 8 GPUs (`sweep3` vs `colo`) | Per-call gateway TTFT p99 at the 20 jobs/s target **16.7 s split vs 1.23 s colocated**; completed-job median 29.0 s vs 12.1 s; similar whole-run mean ITL (24.4 vs 24.8 ms). Highest step within a 2 s p99: split 12/s target (12.5 started), colocated 20/s (19.9 started). Estimated cost at those steps **$0.36 vs $0.22 per 1,000 jobs** ($15.92/h, from arrival rates, not measured per completed migration); the split's capacity is between 12.5 and 18.5/s, so 1.1-1.6× per job. The load generator (256 threads, start stamped when a thread frees up) fell behind under overload: started 18.5 vs 19.9/s at the 20 target and 13.7 vs 22.2/s at 28, so the 28 step is not like-for-like and overload latency is understated. |
 | E8 | KEDA scale-out (`autoscale`) | Scaled 21 s into the burst; replica ready at +239 s; burst ended at +156 s; 0 requests served; scaled down at +381 s. Timeline derived from k8s events recorded after the run (`a100-autoscale-events.txt`; raw events expired); burst and run end reproduce from the load file. |
 | E7 | Noisy tenant (`noisy`) | 541 of the flooder's requests refused at admission; other tenants TTFT p99 **0.38 s**. |
 
@@ -213,7 +213,7 @@ Experiments run with `cluster/experiment.sh`, summarised by `cluster/analyze_run
 | Where do I hop, and what is not copied? | `hop.py`; Part 6. |
 | Where do I evict, and what becomes a ghost if I skip it? | `fleet.py` evicts job/prefix affinity when an engine restarts or fails (`orch_affinity_evictions_total`), else the router sticks to a cache that no longer exists. KV pulled by nobody is freed only by the NIXL lease (ghost). |
 | Engine scheduler vs my admit/place/queue? | Gateway decides who enters, where, and in what order it is dispatched; vLLM decides batching, chunked prefill, blocks and preemption for what it has been given. No scheduler reimplemented. |
-| What limited concurrency on this GPU for this app? | Not KV (≤ 15 %) and not `max_num_seqs`. First my prefill dispatch cap, then decode slots and decode GPU time (ITL 21 → 33 ms as load rose). |
+| What limited concurrency on this GPU for this app? | Not KV (≤ ~16 %) and not `max_num_seqs`. First my prefill dispatch cap, then decode slots and decode GPU time (ITL 21 → 33 ms as load rose). |
 | Four production alerts | (1) Client TTFT p99 by class > SLO for 5 min. (2) `orch_shed_total{code="503"}` rate > 1 % of requests (capacity, not tenants). (3) Our queue depth or queue-wait p99 rising while engine GPU busy < 60 % (the control plane is the bottleneck: both A10 and A100 incidents). (4) `vllm:num_preemptions_total` or `nixl_num_kv_expired_reqs_total` increasing (KV over-committed or ghost KV). |
 | If I scale, which pool? | Decode, on running + waiting (decode slots hot). Prefill should scale on uncached prompt tokens waiting; the implemented trigger counts waiting requests. For bursts shorter than replica startup (~3.6 min here), keep a warm standby instead. |
 | At 10× traffic, what changes, and three wrong knobs? | Change: colocated engines on more hosts behind the same gateway; class priority passed into vLLM; warm standby plus a startup cut (compile cache, fewer graph sizes). Wrong: (1) raise gateway slots/`max_num_seqs` without an ITL SLO (more batching, worse tokens); (2) "KV is the limit, add replicas of everything" (KV was 15 %); (3) split prefill/decode across hosts on a 50 Gb NIC for 2k-token agent prompts (E4, E5a). |
@@ -240,7 +240,7 @@ The original plan was larger than what I built. What I cut, and why:
   traffic, worse on unusual text); an exact `/tokenize` check near the limit is not implemented.
 * Priority is not propagated into vLLM.
 * The agent's mapping check is a fixture check, not proof the migrated code works.
-* The load generator stamps a job's start when one of its 256 threads frees up, so under overload
+* The load generator stamps a job's start when one of its 512 threads (`experiment.sh` passes `--max-workers 512`) frees up, so under overload
   it falls behind its target and hides that backlog from latency (E4). An open-loop generator that
   stamps the scheduled arrival time is the fix before re-measuring capacity.
 * TTFT figures are per model call at the gateway; the app's calls are non-streaming, so a user

@@ -25,10 +25,10 @@ evidence behind each claim.
 * For fresh prompts, the full split path (remote prefill + NIXL transfer at ~4.5 GB/s over RoCE NIC
   loopback + first token) was slower than recomputing locally at every size tested.
 * Colocated engines beat the prefill/decode split on the same 8 GPUs: at a 20 jobs/s target,
-  per-call TTFT p99 1.2 s vs 16.7 s and completed-job median 12.1 s vs 29.0 s, with the same
-  inter-token latency. The split met a 2 s p99 only at the 12/s step (estimated 1.1-1.6× the cost
+  per-call TTFT p99 1.2 s vs 16.7 s and completed-job median 12.1 s vs 29.0 s, with similar
+  whole-run mean inter-token latency. The split met a 2 s p99 only at the 12/s step (estimated 1.1-1.6× the cost
   per job; the load generator fell behind under overload, see DESIGN.md E4).
-* The first bottleneck was the gateway's own settings, not the GPUs or KV (KV never above 15 %).
+* The first bottleneck was the gateway's own settings, not the GPUs or KV (KV never above about 16 %).
 * KEDA scaled within 21 s, but a 30B replica took ~3.6 min to become ready (from recorded k8s events).
 
 ## Run the tests
@@ -36,4 +36,12 @@ evidence behind each claim.
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt pytest pytest-asyncio
 .venv/bin/python -m pytest -q
+```
+
+## Rebuild the charts and replay a job
+
+```bash
+.venv/bin/pip install -r requirements-analysis.txt
+.venv/bin/python cluster/article_figures.py
+.venv/bin/python cluster/replay_job.py colo 12
 ```

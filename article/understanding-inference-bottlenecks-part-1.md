@@ -5,7 +5,7 @@
 I built a small inference cluster to serve a tool-using AI agent, wrote the control plane in
 front of it myself, and then measured where the time went. I expected the usual suspects: GPU
 memory, the KV cache, the network between prefill and decode. On the night of the experiments,
-the KV cache never got above 15 % full. The biggest losses came from three other places:
+the KV cache never got above about 16 % full. The biggest losses came from three other places:
 
 * **A single line in my own gateway config** left four of eight A100s about two-thirds idle while
   277 requests waited in a queue.
@@ -73,9 +73,9 @@ instead of 32, which shrinks the KV cache eightfold. And tensor parallelism shou
 number of KV heads: at TP=8, four KV heads across eight GPUs means every head is stored twice.
 
 **What happened under load.** My hypothesis was that the engine's sequence limit (256) would bind
-before the KV cache (about 480 sequences at the agent's prompt length). Neither came close. Peak KV
-use was **15 %**, there were **zero preemptions** in every run, and the engine never ran more
-than 172 sequences. For agent-length prompts on this hardware, KV memory was simply not the
+before the KV cache (about 480 sequences at the agent's prompt length). Neither bound. Peak KV
+use was about **16 %** (15.8 % on one engine during the autoscaling burst), there were **zero
+preemptions** in every run, and an engine never ran more than 191 sequences. For agent-length prompts on this hardware, KV memory was simply not the
 constraint. That changes what you should buy and what you should tune.
 
 ---
@@ -144,9 +144,10 @@ At a target of 20 agent jobs per second, p99 time to first token for individual 
 measured at the gateway, was **16.7 s split and 1.2 s colocated**. Whole agent jobs (four calls)
 that completed took a median of 29.0 s split and 12.1 s colocated. Against a 2-second p99 target, the split met
 it only at the 12 jobs/s step, and the colocated engines also met it at 20. And the one thing the
-split should have improved, inter-token latency, was the same in both: 24.4 ms against 24.8 ms.
+split should have improved, inter-token latency, was similar: a whole-run mean of 24.4 ms against
+24.8 ms.
 
-One caveat on the load. My load generator has a fixed pool of 256 worker threads and records a
+One caveat on the load. My load generator ran with a fixed pool of 512 worker threads and records a
 job's start time only when a thread picks it up. When jobs run long, the pool fills, jobs back up
 inside the generator, and that wait never appears in the latency numbers. At the 20 jobs/s target
 the split actually started 18.5 jobs/s and the colocated engines 19.9. At the 28 target it was

@@ -35,7 +35,7 @@ Open: `plots/article-*.png`, `notebook/part5_queues_a100.ipynb`, `DESIGN.md` (Pa
 
 * 2 × 48 × 4 × 128 × 2 B = 96 KiB per token; ~865k tokens per engine predicted, **878,464**
   reported by vLLM (within 2 %). Overhead guess was the only error (1.1 GiB, not 2).
-* Under load KV never passed **15 %**, zero preemptions. KV was not the limiter.
+* Under load KV never passed about **16 %**, zero preemptions. KV was not the limiter.
 
 ## 4. Why colocated beat the split here (3 min)
 
@@ -45,7 +45,7 @@ Open: `plots/article-*.png`, `notebook/part5_queues_a100.ipynb`, `DESIGN.md` (Pa
 * KV produced at ~2 GB/s vs ~4.5 GB/s link → the split adds ~44 % to prefill for a fresh prompt.
   The hop went through the RoCE NIC **in loopback on one host**, not a switch between hosts.
 * `plots/article-2`: at the **20 jobs/s target**, per-call TTFT p99 16.7 s split vs 1.2 s colocated;
-  completed-job median 29.0 s vs 12.1 s; same ITL.
+  completed-job median 29.0 s vs 12.1 s; similar whole-run mean ITL.
 * Raise the caveat yourself: the load generator stamps starts when a thread frees up, so it fell
   behind under overload (started 18.5 vs 19.9 at target 20; 13.7 vs 22.2 at 28). The 28 step is
   not like-for-like. Cost per job is an estimate (1.1-1.6× for the split), not a measurement.
