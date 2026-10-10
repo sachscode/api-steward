@@ -218,6 +218,18 @@ Experiments run with `cluster/experiment.sh`, summarised by `cluster/analyze_run
 | If I scale, which pool? | Decode, on running + waiting (decode slots hot). Prefill should scale on uncached prompt tokens waiting; the implemented trigger counts waiting requests. For bursts shorter than replica startup (~3.6 min here), keep a warm standby instead. |
 | At 10× traffic, what changes, and three wrong knobs? | Change: colocated engines on more hosts behind the same gateway; class priority passed into vLLM; warm standby plus a startup cut (compile cache, fewer graph sizes). Wrong: (1) raise gateway slots/`max_num_seqs` without an ITL SLO (more batching, worse tokens); (2) "KV is the limit, add replicas of everything" (KV was 15 %); (3) split prefill/decode across hosts on a 50 Gb NIC for 2k-token agent prompts (E4, E5a). |
 
+## Scope decisions
+
+The original plan was larger than what I built. What I cut, and why:
+
+| Planned | Outcome | Why |
+| --- | --- | --- |
+| Generate the patch and verify behavior is preserved | Cut: the agent assesses a migration and checks a mapping | The assignment grades the serving shape; a fixture check is enough to make the agent's traffic real |
+| Mooncake for the KV hop | NIXL (`NixlConnector`) instead | Built into vLLM, and its counters plus the decode engine's external prefix-cache hits prove KV actually moved |
+| Prefill on one host, decode on another | Both pools on one 8x A100 host | Only one 8x A100 instance was available across Lambda's regions; two-host scripts are in `cluster/` |
+| Long-prompt mix (16-32k) where P/D should win | Not run | Time; it is the next controlled experiment |
+| Live overflow to Superlinked | Tested against a mock | Not exercised against the live API during the runs |
+
 ## Limitations
 
 * One host, not two (capacity). The KV path used the RoCE NIC in loopback; inter-host switch
