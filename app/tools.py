@@ -40,9 +40,18 @@ TOOLS = [
         "check_migration_plan",
         "Check API mapping only; this does not execute code or validate billing.",
         {
-            "operation": {"type": "string"},
-            "items_parameter": {"type": "string"},
-            "api_version": {"type": "string"},
+            # Without descriptions the 30B model passed the route name ("invoice_preview") as
+            # the operation in every A100 run; the check needs the SDK method the route calls.
+            "operation": {
+                "type": "string",
+                "description": "Fully qualified Stripe SDK method the route should call after the upgrade, "
+                "in the form stripe.<Resource>.<method>. Not the route or endpoint name.",
+            },
+            "items_parameter": {
+                "type": "string",
+                "description": "Request parameter path that carries the proposed subscription items, in dotted form.",
+            },
+            "api_version": {"type": "string", "description": "Stripe API version string the request must pin."},
         },
     ),
 ]
