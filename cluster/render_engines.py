@@ -47,6 +47,9 @@ PROFILES = {
         "max_num_seqs": 256,
         "node_pool": {"prefill": "prefill", "decode": "decode"},
         "ucx_devices": "mlx5_0:1",
+        # Whole GPUs per engine: keep HAMi for scheduling only and switch off its in-pod CUDA
+        # interception (memory/core limits), which only matters when pods share a GPU.
+        "extra_env": {"CUDA_DISABLE_CONTROL": "true"},
         "keda": {"prefill": 8, "decode": 192},
         "shm": "16Gi",
         "gateway": {
@@ -138,6 +141,7 @@ def engine(profile: dict, pool: str, slot: int, models: str, image: str) -> list
                                 },
                                 {"name": "UCX_TLS", "value": "all"},
                                 {"name": "UCX_NET_DEVICES", "value": profile["ucx_devices"]},
+                                *({"name": k, "value": v} for k, v in profile.get("extra_env", {}).items()),
                             ],
                             "ports": [{"containerPort": port, "name": "http"}],
                             "resources": {"limits": profile["gpu"]},
